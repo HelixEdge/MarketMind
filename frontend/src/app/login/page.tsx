@@ -28,7 +28,7 @@ export default function LoginPage() {
         await login(email, password);
         toast.success("Welcome back!");
       }
-      router.push("/dashboard");
+      router.push("/dashboard/vision");
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");
     } finally {
