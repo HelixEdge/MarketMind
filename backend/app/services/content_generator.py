@@ -31,7 +31,10 @@ class ContentGenerator:
         self.client = None
         settings = Settings()
         if settings.OPENAI_API_KEY:
-            self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+            if settings.MODEL_BASE_URL:
+                self.client = OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.MODEL_BASE_URL)
+            else:
+                self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.MODEL
 
     def _call_llm(self, prompt: str, max_tokens: int = 400) -> str:
