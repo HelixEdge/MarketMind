@@ -195,7 +195,7 @@ export function ChatBot() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-lg border border-gray-200 dark:border-gray-800">
+    <Card className="w-full max-w-5xl mx-auto shadow-lg border border-gray-200 dark:border-gray-800">
       <CardHeader className="pb-4 border-b border-gray-100 dark:border-gray-800">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
