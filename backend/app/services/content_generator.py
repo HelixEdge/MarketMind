@@ -32,7 +32,7 @@ class ContentGenerator:
         settings = Settings()
         if settings.OPENAI_API_KEY:
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-5-mini"
+        self.model = settings.MODEL
 
     def _call_llm(self, prompt: str, max_tokens: int = 400) -> str:
         """Make a call to OpenAI API."""
