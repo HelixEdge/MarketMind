@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+import json
+from fastapi import APIRouter, Depends, BackgroundTasks
 from typing import Optional
 
 from app.models.schemas import (
@@ -6,12 +7,26 @@ from app.models.schemas import (
     Persona, Platform
 )
 from app.services.content_generator import content_generator
+from app.auth import get_optional_user
+from app.database import get_db
 
 router = APIRouter()
 
 
+async def _save_content(user_id: int, response: ContentResponse, market_context: str):
+    try:
+        db = get_db()
+        await db.execute(
+            "INSERT INTO content_history (user_id, persona, platform, content, hashtags, market_context) VALUES (?, ?, ?, ?, ?, ?)",
+            (user_id, response.persona.value, response.platform.value, response.content, json.dumps(response.hashtags), market_context),
+        )
+        await db.commit()
+    except Exception:
+        pass
+
+
 @router.post("", response_model=ContentResponse)
-def generate_content(request: ContentRequest):
+async def generate_content(request: ContentRequest, background_tasks: BackgroundTasks, user=Depends(get_optional_user)):
     """
     Generate social media content with a specific persona voice.
 
@@ -37,6 +52,9 @@ def generate_content(request: ContentRequest):
         behavior_context=request.behavior_context,
         coaching_insight=request.coaching_insight,
     )
+
+    if user and response:
+        background_tasks.add_task(_save_content, user["id"], response, request.market_context)
 
     return response
 

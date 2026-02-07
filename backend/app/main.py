@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import Settings
 from app.api.v1.router import api_router
 from app.services.claude_engine import AIEngine
+from app.database import init_db, close_db
 
 settings = Settings()
 
@@ -23,7 +24,8 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def startup_event():
-    """Log API configuration on startup."""
+    """Initialize database and log API configuration on startup."""
+    await init_db()
     print("\n" + "="*60)
     print("🚀 Intelligent Trading Analyst API Startup")
     print("="*60)
@@ -33,7 +35,14 @@ async def startup_event():
     else:
         print(f"⚠ AI Service: OFFLINE - Using fallback responses")
         print(f"  → Set OPENAI_API_KEY environment variable to enable AI")
+    print(f"✓ Database: READY")
     print("="*60 + "\n")
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Close database connection on shutdown."""
+    await close_db()
 
 app.include_router(api_router, prefix="/api/v1")
 

@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
 import { ChatProvider } from "@/components/providers/ChatProvider";
 import { ChatBubble } from "@/components/chat/ChatBubble";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export default function DashboardLayout({
   children,
@@ -14,17 +15,19 @@ export default function DashboardLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
-    <ChatProvider>
-      <div className="flex h-dvh bg-white dark:bg-gray-950">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <Navbar onMenuToggle={() => setSidebarOpen(true)} />
-          <main className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6 dark:bg-gray-950">
-            {children}
-          </main>
+    <ProtectedRoute>
+      <ChatProvider>
+        <div className="flex h-dvh bg-white dark:bg-gray-950">
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <Navbar onMenuToggle={() => setSidebarOpen(true)} />
+            <main className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6 dark:bg-gray-950">
+              {children}
+            </main>
+          </div>
+          <ChatBubble />
         </div>
-        <ChatBubble />
-      </div>
-    </ChatProvider>
+      </ChatProvider>
+    </ProtectedRoute>
   );
 }

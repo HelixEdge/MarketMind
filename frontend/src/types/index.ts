@@ -76,3 +76,35 @@ export interface InsightResponse {
   market_context: string;
   behavior_context?: string;
 }
+
+// ── Auth types ──────────────────────────────────────────────
+
+export interface User {
+  id: number;
+  email: string;
+  display_name: string;
+  created_at?: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+}
+
+export interface ChatHistoryItem {
+  id: number;
+  role: string;
+  content: string;
+  timestamp?: string;
+}
+
+export interface ContentHistoryItem {
+  id: number;
+  persona: string;
+  platform: string;
+  content: string;
+  hashtags?: string[];
+  market_context?: string;
+  created_at?: string;
+}

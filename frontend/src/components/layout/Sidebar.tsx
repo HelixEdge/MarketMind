@@ -6,14 +6,20 @@ import {
   LayoutDashboard,
   TrendingUp,
   MessageCircle,
+  History,
+  Eye,
   Settings,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Chat", href: "/dashboard/chat", icon: MessageCircle },
+  { name: "History", href: "/dashboard/history", icon: History },
+  { name: "Vision", href: "/dashboard/vision", icon: Eye },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -24,6 +30,7 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
 
   return (
     <>
@@ -83,9 +90,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
         </nav>
 
         <div className="border-t border-gray-200 p-4 dark:border-gray-800">
-          <p className="text-xs text-gray-500 text-center dark:text-gray-400">
-            Powered by OpenAI
-          </p>
+          {user ? (
+            <div className="flex items-center justify-between">
+              <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                {user.email}
+              </p>
+              <button
+                onClick={logout}
+                className="ml-2 rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                aria-label="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-500 text-center dark:text-gray-400">
+              Powered by Claude AI
+            </p>
+          )}
         </div>
       </aside>
     </>

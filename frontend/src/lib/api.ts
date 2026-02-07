@@ -8,6 +8,10 @@ import type {
   InsightResponse,
   Persona,
   Platform,
+  AuthResponse,
+  User,
+  ChatHistoryItem,
+  ContentHistoryItem,
 } from "@/types";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
@@ -16,19 +20,73 @@ async function fetchApi<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+
+  // Attach auth token if present
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem("auth_token");
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+  }
+
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
+    headers,
   });
 
+  if (response.status === 401) {
+    // Clear stored auth on 401
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+    }
+    throw new Error("Unauthorized");
+  }
+
   if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.detail || `API error: ${response.status}`);
   }
 
   return response.json();
+}
+
+// ── Auth API ──────────────────────────────────────────────
+
+export async function register(email: string, password: string, display_name: string): Promise<AuthResponse> {
+  return fetchApi<AuthResponse>("/auth/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, display_name }),
+  });
+}
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  return fetchApi<AuthResponse>("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+}
+
+export async function getMe(): Promise<User> {
+  return fetchApi<User>("/auth/me");
+}
+
+// ── History API ──────────────────────────────────────────────
+
+export async function getChatHistory(): Promise<ChatHistoryItem[]> {
+  return fetchApi<ChatHistoryItem[]>("/history/chat");
+}
+
+export async function clearChatHistory(): Promise<void> {
+  await fetchApi("/history/chat", { method: "DELETE" });
+}
+
+export async function getContentHistory(): Promise<ContentHistoryItem[]> {
+  return fetchApi<ContentHistoryItem[]>("/history/content");
 }
 
 export async function getMarketData(

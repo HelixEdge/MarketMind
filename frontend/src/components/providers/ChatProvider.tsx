@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useRef, useCallback } from "react";
-import { chat, type ChatMessage } from "@/lib/api";
+import { createContext, useContext, useState, useRef, useCallback, useEffect } from "react";
+import { chat, getChatHistory, clearChatHistory, type ChatMessage } from "@/lib/api";
+import { useAuth } from "@/components/providers/AuthProvider";
 
 const SYSTEM_PROMPT = `You are a supportive, experienced trading coach. You help traders understand their emotions, patterns, and decisions. You never give financial advice, predictions, or signals. You focus on:
 - Emotional awareness and mindset
@@ -25,9 +26,29 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const messagesRef = useRef<ChatMessage[]>([]);
   const isLoadingRef = useRef(false);
+  const { user } = useAuth();
 
   messagesRef.current = messages;
   isLoadingRef.current = isLoading;
+
+  // Load persisted chat history on mount if user is authenticated
+  useEffect(() => {
+    if (!user) return;
+    getChatHistory()
+      .then((history) => {
+        if (history.length > 0) {
+          const restored: ChatMessage[] = history.map((h) => ({
+            role: h.role as ChatMessage["role"],
+            content: h.content,
+            timestamp: h.timestamp || undefined,
+          }));
+          setMessages(restored);
+        }
+      })
+      .catch(() => {
+        // Silently fail — user just won't see history
+      });
+  }, [user]);
 
   const sendMessage = useCallback(async (content: string) => {
     const trimmed = content.trim();
@@ -60,7 +81,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
 
   const clearMessages = useCallback(() => {
     setMessages([]);
-  }, []);
+    if (user) {
+      clearChatHistory().catch(() => {});
+    }
+  }, [user]);
 
   const addSuggestions = useCallback(async (marketContext: string, behaviorContext?: string) => {
     // Generate 2-3 contextual suggestions based on market and behavior

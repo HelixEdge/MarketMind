@@ -20,13 +20,21 @@ export default function Home() {
             your browser
           </p>
 
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-gray-900 shadow-lg transition-transform hover:scale-105"
-          >
-            Open Dashboard
-            <ArrowRight className="h-5 w-5" />
-          </Link>
+          <div className="flex flex-col items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 font-semibold text-gray-900 shadow-lg transition-transform hover:scale-105"
+            >
+              Open Dashboard
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+            <Link
+              href="/login"
+              className="text-sm text-gray-400 transition-colors hover:text-white"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
 
         <div className="mt-24 grid gap-8 md:grid-cols-3">

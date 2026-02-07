@@ -10,5 +10,8 @@ class Settings:
     MODEL_BASE_URL = os.getenv("MODEL_BASE_URL", "")
     CORS_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
     DEFAULT_SYMBOL: str = "EURUSD=X"
+    JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "dev-secret-change-in-production")
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRY_HOURS: int = 24
 
 # settings = Settings()

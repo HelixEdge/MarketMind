@@ -145,3 +145,46 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     message: ChatMessage
     usage: Optional[dict] = None
+
+
+# ── Auth schemas ──────────────────────────────────────────────
+
+class UserRegisterRequest(BaseModel):
+    email: str
+    password: str
+    display_name: str
+
+
+class UserLoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserResponse(BaseModel):
+    id: int
+    email: str
+    display_name: str
+    created_at: Optional[str] = None
+
+
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+
+
+class ChatHistoryItem(BaseModel):
+    id: int
+    role: str
+    content: str
+    timestamp: Optional[str] = None
+
+
+class ContentHistoryItem(BaseModel):
+    id: int
+    persona: str
+    platform: str
+    content: str
+    hashtags: Optional[list[str]] = None
+    market_context: Optional[str] = None
+    created_at: Optional[str] = None
