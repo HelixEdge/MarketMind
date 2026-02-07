@@ -2,7 +2,7 @@ from fastapi import APIRouter, Query
 from typing import Optional
 
 from app.models.schemas import MarketResponse, Trade, BehaviorRequest
-from app.services.market_intelligence import market_service
+from app.services.market_intelligence import MarketIntelligenceService, market_service
 from app.services.claude_engine import claude_engine
 from app.services.behavior_engine import behavior_engine
 
@@ -23,6 +23,7 @@ async def get_market_data(
     - Generates Claude-powered market explanation
     - Optionally simulates a 3% drop for demo purposes
     """
+    market_service = MarketIntelligenceService(symbol=symbol)
     # Update symbol if different
     if symbol != market_service.symbol:
         market_service.symbol = symbol
@@ -48,6 +49,7 @@ async def get_market_data(
 @router.get("/indicators")
 async def get_indicators(symbol: str = Query(default="EURUSD=X")):
     """Get raw technical indicators without explanation."""
+    market_service = MarketIntelligenceService(symbol=symbol)
     if symbol != market_service.symbol:
         market_service.symbol = symbol
 
@@ -74,6 +76,7 @@ async def get_chart_data(
     points: int = Query(default=50, ge=10, le=100)
 ):
     """Get historical price data for charting."""
+    market_service = MarketIntelligenceService(symbol=symbol)
     if symbol != market_service.symbol:
         market_service.symbol = symbol
         market_service._cached_data = None
