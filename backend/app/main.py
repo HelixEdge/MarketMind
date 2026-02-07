@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
 from app.api.v1.router import api_router
-from app.services.claude_engine import claude_engine
+from app.services.claude_engine import AIEngine
 
 settings = Settings()
 
@@ -27,6 +27,7 @@ async def startup_event():
     print("\n" + "="*60)
     print("🚀 Intelligent Trading Analyst API Startup")
     print("="*60)
+    claude_engine = AIEngine()
     if claude_engine.client:
         print(f"✓ AI Service: READY (Model: {claude_engine.model})")
     else:

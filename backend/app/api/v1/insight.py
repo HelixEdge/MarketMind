@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.models.schemas import InsightRequest, InsightResponse
-from app.services.claude_engine import claude_engine
+from app.services.claude_engine import AIEngine
 
 router = APIRouter()
 
@@ -13,7 +13,8 @@ def generate_insight(request: InsightRequest):
 
     Returns: "Market did X, and based on your history, you tend to Y" style coaching.
     """
-    coaching_insight = claude_engine.generate_coaching_insight(
+    claude_engine = AIEngine()
+    coaching_insight = claude_engine.generate_coaching_message(
         market_context=request.market_context,
         behavior_context=request.behavior_context,
     )
