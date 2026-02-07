@@ -3,8 +3,7 @@ from typing import Optional
 
 from app.models.schemas import MarketResponse, Trade, BehaviorRequest
 from app.services.market_intelligence import MarketIntelligenceService, market_service
-from app.services.claude_engine import claude_engine
-from app.services.behavior_engine import behavior_engine
+from app.services.claude_engine import AIEngine
 
 router = APIRouter()
 
@@ -24,6 +23,8 @@ async def get_market_data(
     - Optionally simulates a 3% drop for demo purposes
     """
     market_service = MarketIntelligenceService(symbol=symbol)
+    
+    claude_engine = AIEngine()
     # Update symbol if different
     if symbol != market_service.symbol:
         market_service.symbol = symbol

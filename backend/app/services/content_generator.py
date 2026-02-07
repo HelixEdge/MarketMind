@@ -1,7 +1,7 @@
 from typing import Optional
 from openai import OpenAI
 
-from app.config import settings
+from app.config import Settings
 from app.models.schemas import Persona, Platform, ContentResponse
 
 
@@ -29,6 +29,7 @@ PLATFORM_LIMITS = {
 class ContentGenerator:
     def __init__(self):
         self.client = None
+        settings = Settings()
         if settings.OPENAI_API_KEY:
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = "gpt-5-mini"
@@ -47,7 +48,8 @@ class ContentGenerator:
                 ]
             )
             return response.choices[0].message.content
-        except Exception:
+        except Exception as e:
+            print(f"Error calling OpenAI API for content generation: {e}")
             return self._get_fallback_content(prompt)
 
     def _get_fallback_content(self, prompt: str) -> str:
