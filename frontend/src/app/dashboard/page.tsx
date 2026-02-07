@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { useChat } from "@/components/providers/ChatProvider";
+import { useSessionState } from "@/hooks/useSessionState";
 import { MarketCard } from "@/components/cards/MarketCard";
 import { BehaviorCard } from "@/components/cards/BehaviorCard";
 import { InsightCard } from "@/components/cards/InsightCard";
@@ -36,14 +37,22 @@ const fadeInUp = {
 };
 
 export default function DashboardPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [symbol, setSymbol] = useState("EURUSD=X");
-  const [marketData, setMarketData] = useState<MarketResponse | null>(null);
-  const [behaviorData, setBehaviorData] = useState<BehaviorResponse | null>(null);
-  const [insightData, setInsightData] = useState<InsightResponse | null>(null);
-  const [chartData, setChartData] = useState<ChartDataPoint[] | null>(null);
-  const [allContentData, setAllContentData] = useState<Record<Platform, Record<Persona, ContentResponse>> | null>(null);
-  const [platform, setPlatform] = useState<Platform>("linkedin");
+  // Per-stage loading flags (transient — not persisted)
+  const [isSimulating, setIsSimulating] = useState(false);
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [contentLoading, setContentLoading] = useState(false);
+
+  // Persisted data state (survives navigation)
+  const [symbol, setSymbol] = useSessionState("dash_symbol", "EURUSD=X");
+  const [marketData, setMarketData] = useSessionState<MarketResponse | null>("dash_market", null);
+  const [behaviorData, setBehaviorData] = useSessionState<BehaviorResponse | null>("dash_behavior", null);
+  const [insightData, setInsightData] = useSessionState<InsightResponse | null>("dash_insight", null);
+  const [chartData, setChartData] = useSessionState<ChartDataPoint[] | null>("dash_chart", null);
+  const [allContentData, setAllContentData] = useSessionState<Record<Platform, Record<Persona, ContentResponse>> | null>("dash_content", null);
+  const [platform, setPlatform] = useSessionState<Platform>("dash_platform", "linkedin");
+
+  // Not persisted (potentially large file data)
   const [customTrades, setCustomTrades] = useState<TradeData[] | null>(null);
   const { addSuggestions } = useChat();
 
@@ -51,7 +60,15 @@ export default function DashboardPage() {
   const contentData = allContentData && platform ? allContentData[platform] : null;
 
   const handleSimulate = async (mode: "drop" | "rise" = "drop") => {
-    setIsLoading(true);
+    setIsSimulating(true);
+    setMarketLoading(true);
+    setInsightLoading(true);
+    setContentLoading(true);
+
+    // Clear stale insight/content so old data doesn't linger
+    setInsightData(null);
+    setAllContentData(null);
+
     const simulateDrop = mode === "drop";
     const simulateRise = mode === "rise";
     try {
@@ -65,6 +82,7 @@ export default function DashboardPage() {
       setMarketData(market);
       setBehaviorData(behavior);
       setChartData(chart.data);
+      setMarketLoading(false); // Chart, market, behavior cards reveal
 
       // Construct contexts for Step 3
       const marketContext = `${market.market_data.symbol} ${
@@ -78,6 +96,7 @@ export default function DashboardPage() {
       // Step 3: Get coaching insight (fuses X + Y)
       const insight = await getCoachingInsight(marketContext, behaviorContext);
       setInsightData(insight);
+      setInsightLoading(false); // Insight card reveals
 
       // Steps 4+5: Generate content for both platforms in parallel
       const platforms: Platform[] = ["linkedin", "x"];
@@ -100,6 +119,7 @@ export default function DashboardPage() {
         x: allPlatformContent[1],
       };
       setAllContentData(contentByPlatform);
+      setContentLoading(false); // Content card reveals
 
       // Add suggestions to chat based on market and behavior context
       await addSuggestions(marketContext, behaviorContext);
@@ -109,7 +129,10 @@ export default function DashboardPage() {
         description: error instanceof Error ? error.message : "Could not reach the server. Please try again.",
       });
     } finally {
-      setIsLoading(false);
+      setIsSimulating(false);
+      setMarketLoading(false);
+      setInsightLoading(false);
+      setContentLoading(false);
     }
   };
 
@@ -140,12 +163,12 @@ export default function DashboardPage() {
           <SymbolSelector
             value={symbol}
             onChange={setSymbol}
-            disabled={isLoading}
+            disabled={isSimulating}
           />
           <SimulateButton
             onSimulateDrop={() => handleSimulate("drop")}
             onSimulateRise={() => handleSimulate("rise")}
-            isLoading={isLoading}
+            isLoading={isSimulating}
           />
         </div>
       </div>
@@ -161,7 +184,7 @@ export default function DashboardPage() {
           <PriceChart
             data={chartData}
             symbol={symbol.replace("=X", "").replace("-", "/")}
-            isLoading={isLoading}
+            isLoading={marketLoading}
           />
         </motion.div>
       </AnimatePresence>
@@ -175,7 +198,7 @@ export default function DashboardPage() {
             animate="animate"
             transition={{ duration: 0.3, delay: 0.1 }}
           >
-            <MarketCard data={marketData} isLoading={isLoading} />
+            <MarketCard data={marketData} isLoading={marketLoading} />
           </motion.div>
         </AnimatePresence>
         <AnimatePresence mode="wait">
@@ -188,7 +211,7 @@ export default function DashboardPage() {
           >
             <BehaviorCard
               data={behaviorData}
-              isLoading={isLoading}
+              isLoading={marketLoading}
               onTradesUpload={handleTradesUpload}
               hasCustomTrades={customTrades !== null}
             />
@@ -205,7 +228,7 @@ export default function DashboardPage() {
           animate="animate"
           transition={{ duration: 0.3, delay: 0.25 }}
         >
-          <InsightCard data={insightData} isLoading={isLoading} />
+          <InsightCard data={insightData} isLoading={insightLoading} />
         </motion.div>
       </AnimatePresence>
 
@@ -220,7 +243,7 @@ export default function DashboardPage() {
         >
           <ContentCard
             data={contentData}
-            isLoading={isLoading}
+            isLoading={contentLoading}
             platform={platform}
             onPlatformChange={handlePlatformChange}
           />

@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Query
 from typing import Optional
 
@@ -9,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("", response_model=MarketResponse)
-def get_market_data(
+async def get_market_data(
     symbol: str = Query(default="EURUSD=X", description="Trading symbol"),
     simulate_drop: bool = Query(default=False, description="Simulate a 3% market drop"),
     simulate_rise: bool = Query(default=False, description="Simulate an 8% market rise"),
@@ -34,13 +36,15 @@ def get_market_data(
     market_data = market_service.get_market_data(simulate_drop=simulate_drop, simulate_rise=simulate_rise)
     market_data_with_news = market_service.get_market_with_news(simulate_drop=simulate_drop, simulate_rise=simulate_rise, news_limit=3)
 
-    # Generate explanation
-    explanation = claude_engine.explain_market_move(market_data_with_news)
-
-    # Generate coaching message if requested
-    coaching_message = None
+    # Run both LLM calls in parallel
     if include_coaching:
-        coaching_message = claude_engine.generate_coaching_message(market_data_with_news)
+        explanation, coaching_message = await asyncio.gather(
+            asyncio.to_thread(claude_engine.explain_market_move, market_data_with_news),
+            asyncio.to_thread(claude_engine.generate_coaching_message, market_data_with_news),
+        )
+    else:
+        explanation = await asyncio.to_thread(claude_engine.explain_market_move, market_data_with_news)
+        coaching_message = None
 
     return MarketResponse(
         market_data=market_data,

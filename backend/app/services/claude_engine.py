@@ -26,7 +26,7 @@ class AIEngine:
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
@@ -84,6 +84,25 @@ Guidelines:
 - Encourage mindfulness
 - Keep it under 30 words"""
 
+        return self._call_llm(prompt, max_tokens=1000)
+
+    def generate_coaching_from_context(
+        self,
+        market_context: str,
+        behavior_context: Optional[str] = None,
+    ) -> str:
+        """Generate a coaching message from plain-text context strings."""
+        behavior_part = f"\nTrader Patterns: {behavior_context}" if behavior_context else ""
+        prompt = f"""You are a supportive trading coach. Write ONE brief, empathetic coaching sentence.
+
+Market Context: {market_context}{behavior_part}
+
+Guidelines:
+- Be supportive, not directive
+- No predictions or signals
+- Acknowledge the situation
+- Encourage mindfulness
+- Keep it under 30 words"""
         return self._call_llm(prompt, max_tokens=1000)
 
     def _get_fallback_chat_response(self, user_prompt: str) -> str:

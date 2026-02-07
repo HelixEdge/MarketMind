@@ -14,7 +14,7 @@ def generate_insight(request: InsightRequest):
     Returns: "Market did X, and based on your history, you tend to Y" style coaching.
     """
     claude_engine = AIEngine()
-    coaching_insight = claude_engine.generate_coaching_message(
+    coaching_insight = claude_engine.generate_coaching_from_context(
         market_context=request.market_context,
         behavior_context=request.behavior_context,
     )
