@@ -226,4 +226,4 @@ class BehaviorEngine:
         return prefix + " ".join(coaching_parts[:2])  # Limit to 2 messages
 
 
-behavior_engine = BehaviorEngine()
+

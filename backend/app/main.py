@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import settings
+from app.config import Settings
 from app.api.v1.router import api_router
+settings = Settings()
 
 app = FastAPI(
     title="Intelligent Trading Analyst",

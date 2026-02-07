@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 
 from app.models.schemas import BehaviorRequest, BehaviorResponse, Trade
-from app.services.behavior_engine import behavior_engine
+from app.services.behavior_engine import BehaviorEngine
 
 router = APIRouter()
 
@@ -49,6 +49,7 @@ async def analyze_behavior(request: Optional[BehaviorRequest] = None):
 
     If no trades are provided, uses sample trade data for demo.
     """
+    behavior_engine = BehaviorEngine()
     if request and request.trades:
         trades = request.trades
     else:
@@ -64,6 +65,7 @@ async def get_sample_analysis():
     Get behavior analysis using sample trade data.
     Useful for demo purposes.
     """
+    behavior_engine = BehaviorEngine()
     trades = load_sample_trades()
     response = behavior_engine.analyze_trades(trades)
 

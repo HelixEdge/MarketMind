@@ -8,4 +8,4 @@ class Settings:
     CORS_ORIGINS: list = ["http://localhost:3000", "http://127.0.0.1:3000"]
     DEFAULT_SYMBOL: str = "EURUSD=X"
 
-settings = Settings()
+# settings = Settings()

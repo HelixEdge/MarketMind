@@ -1,12 +1,13 @@
 from typing import Optional
 from openai import OpenAI
 
-from app.config import settings
+from app.config import Settings
 from app.models.schemas import MarketData, BehaviorResponse
 
 
 class AIEngine:
     def __init__(self):
+        settings = Settings()
         self.client = None
         if settings.OPENAI_API_KEY:
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
@@ -27,6 +28,7 @@ class AIEngine:
             )
             return response.choices[0].message.content
         except Exception as e:
+            print(f"Error calling OpenAI API: {e}")
             return self._get_fallback_response(prompt)
 
     def _get_fallback_response(self, prompt: str) -> str:
@@ -51,7 +53,7 @@ Market Data:
 
 Write a professional, clear explanation. No predictions. No trading advice. Just explain what happened and why it matters."""
 
-        return self._call_llm(prompt, max_tokens=150)
+        return self._call_llm(prompt, max_tokens=1000)
 
     def generate_coaching_message(
         self,
@@ -75,7 +77,7 @@ Guidelines:
 - Encourage mindfulness
 - Keep it under 30 words"""
 
-        return self._call_llm(prompt, max_tokens=100)
+        return self._call_llm(prompt, max_tokens=1000)
 
 
 claude_engine = AIEngine()
