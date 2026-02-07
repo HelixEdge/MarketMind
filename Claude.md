@@ -1,42 +1,71 @@
 # Claude.md — Intelligent Trading Analyst
-## Market Analysis × Behavioural Awareness × AI Personas
-**1-Day Hackathon Build · Live Demo Ready · No Signals**
 
-Owner: Hongbo Wei  
-Role: AI/ML Engineer (Claude Code executes)  
-Mode: Explain-only, Compliant, Brand-Safe
+## Understand Markets · Coach Behaviour · Create Content
+
+**1-Day Hackathon Build · Live Demo · No Predictions**
+
+Owner: Team Helix
+
+Role: Hongbo Wei - Applied AI Engineer (Claude Code executes)
+
+Mode: Explain-only · Compliant · Brand-safe
 
 ---
 
 # 0. Mission
 
-> Build an AI analyst that explains market moves, understands a trader’s behaviour, and creates social content good enough to go viral — without revealing it's AI.
+> Use GenAI to help traders:
+>
+> * Understand market moves
+> * Analyse their own behaviour
+> * Share trusted content that builds community
+
+Inspired by how pros have analyst teams and trading coaches. Retail traders have Google — we fix that.
 
 ---
 
-# 1. Demo Must Show
+# 1. What You’ll Demo (Definition of Done)
 
-✅ Real-time explanation of market move  
-✅ Behavioural insight based on user trading history  
-✅ Generated social posts (LinkedIn + X personas)  
-✅ Single web UI dashboard (desktop-optimized)  
-✅ Works live, no predictions, brand-safe tone
+✅ Real-time market explanation ("Why did this move?")
 
----
+✅ Behaviour pattern awareness ("You tend to Y when X happens")
 
-# 2. What You’ll Build
+✅ Persona-generated social content (LinkedIn + X)
 
-AI-powered trading analyst that delivers:
+✅ Full UI: desktop-first dashboard
 
-| Module | Output |
-|--------|--------|
-| 📈 Market Engine | “EUR/USD spiked 1.3% after US CPI. RSI breakout + volume surge suggest momentum reversal.” |
-| 🧠 Behaviour Engine | “You tend to re-enter quickly after 3 losses — this pattern is active now.” |
-| 🧑‍💼 Content Engine | “Calm Analyst: ‘Markets moved sharply post-CPI. In times like this, clarity > reactivity.’” |
+✅ No signals, predictions, or advice
+
+✅ Working, live system (no slides)
 
 ---
 
-# 3. System Architecture
+# 2. Core Problem
+
+Retail traders face two gaps:
+
+### 🧠 Market understanding
+
+* "Price dropped 5% — I don’t know why."
+* "Too much info, I don’t know what matters."
+* "No Bloomberg terminal, just Twitter."
+
+### 💥 Behaviour awareness
+
+* "Didn’t realise I was on a losing streak."
+* "I revenge trade but never notice until too late."
+* "In the moment, I don't know I'm being emotional."
+
+### 📣 Content creation
+
+* "No time to write quality insights."
+* "Don’t trust most market voices online."
+
+Platforms help you click buttons — not think. We change that.
+
+---
+
+# 3. Architecture
 
 ```mermaid
 graph TD
@@ -48,9 +77,9 @@ T[User Trades]
 end
 
 subgraph Backend
-M[Market Intelligence]
+M[Market Intel]
 B[Behaviour Engine]
-C[AI Prompt Engine]
+C[Claude Prompt Engine]
 S[Social Content Engine]
 end
 
@@ -66,7 +95,7 @@ B --> C
 C --> S
 S --> D
 C --> D
-````
+```
 
 ---
 
@@ -74,75 +103,76 @@ C --> D
 
 ## 4.1 Market Intelligence
 
-* Real-time spike detection (>1.5%/5m)
-* Context from RSI/ATR/Volume
-* News summarization via GPT-5-mini
-* Output: 1–2 sentence plain-English summary
+* Detect spikes >1.5% in 5m
+* Explain using RSI/ATR + news
+* Generate brief insights (1–2 sentences)
+* Personalise to watched symbols ("why EUR/USD moved")
 
-## 4.2 Behaviour Engine
+## 4.2 Behavioural Coaching
 
-* Parse trades.csv: detect loss streaks, revenge trades, oversizing
-* Rule-based triggers + optional fine-tuning
-* Output: “You tend to oversize after loss. Consider pausing.”
+* Parse trades.csv: streaks, revenge trades, oversizing
+* Detect emotion-related patterns
+* Give timely, supportive nudges (no blocks)
+* Celebrate healthy habits ("You traded 3 sessions without over-sizing")
 
-## 4.3 AI Prompt Engine
+## 4.3 Claude Prompt Layer
 
-* Fusion of market event + user history → coaching message
-* Style: supportive, brief, no directives
-
-Prompt:
+Fusion engine:
 
 ```txt
 Market: {event}
-User: {behaviour pattern}
-Write one coaching sentence. Brand-safe. No prediction.
+User: {behaviour}
+Write 1 sentence: coaching tone. No signal. No advice.
 ```
 
-## 4.4 Social Content Personas
+Example:
+"Market dropped 2%. You tend to double size after losses — consider pausing."
 
-* Generate persona-driven LinkedIn + X posts
-* Voices: Calm Analyst, Data Nerd, Trading Coach
-* Includes daily threads, X-style updates, reflection posts
+## 4.4 Social Persona Engine
+
+* Create daily/weekly content
+* Channels: LinkedIn (pro tone), X (punchy threads)
+* Personas:
+
+  * Calm Analyst
+  * Data Nerd
+  * Trading Coach
+* Output:
+
+  * Event explainer
+  * Educational thread
+  * Weekly brief
+  * “You-trade-like-this” chart post
 
 ---
 
 # 5. Frontend
 
-## Framework
+## 🧱 Stack
 
-| Layer         | Stack                                                     |
-| ------------- | --------------------------------------------------------- |
-| Core          | Next.js (App Router) + React + TypeScript                 |
-| UI            | shadcn/ui + Radix UI primitives                           |
-| Styling       | Tailwind CSS + Figma design tokens (via Style Dictionary) |
-| Charting      | Recharts or Victory for SVG chart components              |
-| Animations    | Framer Motion                                             |
-| Accessibility | ARIA + keyboard nav + a11y linting                        |
+* **Framework**: React + Next.js (App Router)
+* **Styling**: TailwindCSS + shadcn/ui + Radix
+* **Charts**: Recharts or Victory (SVG, accessible)
+* **Figma Sync**: Design tokens auto-injected via Style Dictionary
 
-## Layout
+## 🔤 Layout
 
 ```
 src/
-├── app/                  // App Router structure
-│   ├── layout.tsx        // Sidebar + header
-│   └── dashboard/page.tsx
-├── components/           
-│   ├── ui/               // shadcn/Radix components
-│   ├── Sidebar.tsx
-│   ├── Navbar.tsx
-├── lib/
-│   └── api.ts            // API hooks (SWR/React Query)
-├── styles/
-│   └── globals.css
-└── tailwind.config.js    // Extended with Figma tokens
+├── app/                → layout.tsx, dashboard/page.tsx
+├── components/         → Sidebar, Header, ui/
+├── lib/                → api.ts
+├── styles/             → Tailwind globals
+└── tailwind.config.js  → with Figma tokens
 ```
 
-## UX Patterns
+## 🧽 UX Highlights
 
 * Desktop-first, responsive fallback
-* Sidebar + header layout
-* Accessible keyboard shortcuts (e.g. `/` for search, `?` for help)
-* Dashboard cards: “Why it moved”, “Your Pattern”, “Post Generator”
+* Sidebar nav + topbar search/profile
+* Keyboard shortcuts (`/` for search)
+* Cards: "Why it moved", "Your pattern", "Post preview"
+* Accessible (ARIA), performant (lazy-loaded charts)
 
 ---
 
@@ -150,91 +180,79 @@ src/
 
 ### `GET /market`
 
-→ Returns move context + human explanation
+→ Returns live context + market move summary
 
 ### `POST /behavior`
 
-→ Returns trader pattern + coaching nudge
+→ Returns detected trader pattern + coaching insight
 
 ### `POST /content`
 
-→ Returns LinkedIn + X persona post
+→ Returns persona content for LinkedIn/X
 
 ---
 
-# 7. One-Day Sprint Plan
+# 7. Timeline (1-Day Sprint)
 
-| Hour  | Task                                  |
-| ----- | ------------------------------------- |
-| H0–1  | Scaffold Next.js app + backend        |
-| H1–3  | Market engine (yfinance + OpenAI)     |
-| H3–5  | Behaviour engine + pattern rules      |
-| H5–6  | AI persona + post generation      |
-| H6–7  | Tailwind UI: dashboard cards, charts  |
-| H7–8  | Wire API + simulate 3% drop           |
-| H8–9  | Polish: sample trade history, buttons |
-| H9–10 | Live demo ready                       |
+| Time  | Task                                     |
+| ----- | ---------------------------------------- |
+| H0–1  | Scaffold backend/frontend                |
+| H1–3  | Market spike detection + LLM explanation |
+| H3–5  | Behaviour flagging + insight templates   |
+| H5–6  | Claude prompts + content personas        |
+| H6–7  | UI dashboard with Tailwind + shadcn/ui   |
+| H7–8  | Simulate 3% crash trigger + live test    |
+| H8–9  | Add real trades.csv + social outputs     |
+| H9–10 | Demo polish + wow moment setup           |
 
 ---
 
 # 8. Demo Flow
 
-1. Click “Simulate 3% Drop”
-2. AI explains market move
-3. Behaviour alert triggers: “You often oversize here”
-4. Auto-generates post: Calm Analyst / Data Nerd / Coach
-5. Copy to LinkedIn/X — done
+1. Click “Simulate drop”
+2. Market explanation triggers
+3. Behaviour insight appears
+4. AI generates persona posts
+5. One-click share to X/LinkedIn
 
 ---
 
-# 9. What Will Blow Minds
+# 9. Constraints (✅ Met)
 
-* "Market just dropped. Based on your history, you tend to revenge trade — pause."
-* Persona posts so good, people repost without knowing it’s AI
-* One-click post-to-social across personas
-* “Bloomberg + Head Coach + Ghostwriter”
-* Real-time awareness of both external (market) and internal (trader)
+| Constraint             | Met |
+| ---------------------- | --- |
+| Live demo only         | ✅   |
+| GenAI must add value   | ✅   |
+| No predictions/signals | ✅   |
+| Supportive only        | ✅   |
+| Brand-safe content     | ✅   |
 
 ---
 
-# 10. Compliance Checklist
+# 10. Mind-Blow Moments
 
-| ✅ Constraint | Reason                            |
-| ------------ | --------------------------------- |
-| No signals   | Explain-only                      |
-| Brand-safe   | Tones + personas are professional |
-| Supportive   | No blocking, just nudging         |
-| Real demo    | No slides, live interaction       |
+* "Market did X, and based on your history, you do Y"
+* Detects revenge trading before it happens
+* Posts so clean, no one knows it's AI
+* Three personas with distinct tone + fan base
+* Deriv becomes trusted market voice
 
 ---
 
 # 11. Stack Summary
 
-| Layer    | Stack                                      |
-| -------- | ------------------------------------------ |
-| Backend  | FastAPI + yfinance + OpenAI API            |
-| Frontend | Next.js + Tailwind + shadcn/ui + Radix     |
-| Infra    | Vercel / Cloudflare Pages                  |
-| DevOps   | ESLint, Prettier, TypeScript, Storybook    |
-| CI/CD    | Linting, a11y tests (axe-core), Lighthouse |
-| Design   | Figma + Tailwind tokens                    |
+| Layer    | Stack                                  |
+| -------- | -------------------------------------- |
+| Backend  | FastAPI + yfinance + Claude API        |
+| Frontend | Next.js + Tailwind + Radix + shadcn/ui |
+| Infra    | Vercel / Cloudflare Pages              |
+| Data     | trades.csv / SQLite (demo)             |
+| Charts   | Victory / Recharts                     |
+| CI/CD    | ESLint, axe-core, Lighthouse CI        |
+| Dev UX   | Storybook, TypeScript, hot reload      |
 
 ---
 
-# 12. Positioning
+# 12. One-Liner
 
-Deriv ≠ just a platform.
-Deriv = market intelligence + behavioural awareness + social voice.
-The analyst the retail trader never had — now, AI-powered.
-
----
-
-# 13. One-Line Pitch
-
-Bloomberg terminal + trading coach + ghostwriter
-→ one AI analyst in your browser
-
-```
-
-Ready to drop into `Claude.md`.
-```
+**Bloomberg Terminal + Trading Coach + Ghostwriter → one AI analyst.**
