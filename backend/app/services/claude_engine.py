@@ -11,7 +11,7 @@ class AIEngine:
         self.client = None
         if settings.OPENAI_API_KEY:
             self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
-        self.model = "gpt-5-mini"
+        self.model = settings.MODEL
 
     def _call_llm(self, prompt: str, max_tokens: int = 200) -> str:
         """Make a call to OpenAI API."""
