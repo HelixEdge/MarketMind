@@ -171,7 +171,7 @@ export function ContentCard({
                         className={`text-xs px-2 py-1 rounded font-medium ${
                           platform === "linkedin"
                             ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950"
-                            : "text-white bg-black dark:text-black dark:bg-white border border-black dark:border-white"
+                            : "text-white bg-black dark:text-gray-100 dark:bg-gray-700 border border-black dark:border-gray-600"
                         }`}
                       >
                         {tag}

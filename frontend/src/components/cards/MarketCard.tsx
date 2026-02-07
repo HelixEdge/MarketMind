@@ -93,8 +93,8 @@ export function MarketCard({ data, isLoading }: MarketCardProps) {
           </div>
         </div>
 
-        <div className="rounded-lg bg-gray-50 p-4">
-          <p className="text-sm font-medium text-gray-900">{explanation}</p>
+        <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{explanation}</p>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
@@ -153,8 +153,8 @@ export function MarketCard({ data, isLoading }: MarketCardProps) {
         </div>
 
         {coaching_message && (
-          <div className="rounded-lg bg-blue-50 p-4 border border-blue-100">
-            <p className="text-sm text-blue-900">{coaching_message}</p>
+          <div className="rounded-lg bg-blue-50 p-4 border border-blue-100 dark:bg-blue-950 dark:border-blue-900">
+            <p className="text-sm text-blue-900 dark:text-blue-200">{coaching_message}</p>
           </div>
         )}
       </CardContent>
