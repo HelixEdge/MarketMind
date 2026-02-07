@@ -1,0 +1,35 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import settings
+from app.api.v1.router import api_router
+
+app = FastAPI(
+    title="Intelligent Trading Analyst",
+    description="AI-powered market intelligence, behavior detection, and social content generation",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(api_router, prefix="/api/v1")
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "intelligent-trading-analyst"}
+
+
+@app.get("/")
+async def root():
+    return {
+        "message": "Intelligent Trading Analyst API",
+        "docs": "/docs",
+        "health": "/health"
+    }
