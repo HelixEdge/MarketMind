@@ -134,6 +134,35 @@ Required fields | 必填字段: `id, symbol, side, size, entry_price, timestamp`
 
 ---
 
+## System Architecture | 系统架构
+
+```mermaid
+flowchart TD
+subgraph DATA["Data"]
+  P["Live Price (yfinance)"]
+  T["User Trades (CSV)"]
+end
+subgraph BACKEND["Backend"]
+  M["Market Intelligence"]
+  B["Behavior Engine"]
+  C["OpenAI Engine"]
+  S["Content Generator"]
+end
+subgraph UI["UI"]
+  D["Next.js Dashboard"]
+end
+P --> M
+T --> B
+M --> C
+B --> C
+C --> S
+M --> D
+B --> D
+S --> D
+```
+
+---
+
 ## Project Structure | 项目结构
 
 ```
