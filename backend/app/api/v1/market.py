@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 
-from app.models.schemas import MarketResponse, Trade, BehaviorRequest
-from app.services.market_intelligence import MarketIntelligenceService, market_service
+from app.models.schemas import MarketResponse, Trade, BehaviorRequest, MarketWithNewsResponse
+from app.services.market_intelligence import MarketIntelligenceService
 from app.services.claude_engine import AIEngine
 
 router = APIRouter()
@@ -31,14 +31,15 @@ async def get_market_data(
 
     # Get market data
     market_data = market_service.get_market_data(simulate_drop=simulate_drop)
+    market_data_with_news = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=3)
 
     # Generate explanation
-    explanation = claude_engine.explain_market_move(market_data)
+    explanation = claude_engine.explain_market_move(market_data_with_news)
 
     # Generate coaching message if requested
     coaching_message = None
     if include_coaching:
-        coaching_message = claude_engine.generate_coaching_message(market_data)
+        coaching_message = claude_engine.generate_coaching_message(market_data_with_news)
 
     return MarketResponse(
         market_data=market_data,
@@ -101,4 +102,21 @@ async def get_chart_data(
     return {
         "symbol": symbol.replace("=X", ""),
         "data": chart_data
+    }
+
+
+@router.get("/with-news", response_model=MarketWithNewsResponse)
+async def get_market_with_news(
+    symbol: str = Query(default="EURUSD=X", description="Trading symbol"),
+    simulate_drop: bool = Query(default=False, description="Simulate a 3% market drop"),
+    news_limit: int = Query(default=3, ge=1, le=10)
+):
+    """Get current market data along with recent news headlines."""
+    market_service = MarketIntelligenceService(symbol=symbol)
+
+    result = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=news_limit)
+
+    return {
+        "market": result.market,
+        "news": result.news
     }

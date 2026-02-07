@@ -36,11 +36,25 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**Configure API Key | 配置API密钥:**
+**Configure API Keys | 配置API密钥:**
+
+1) OpenAI (used for content and market explanations)
 ```bash
-# Edit .env file | 编辑 .env 文件
-OPENAI_API_KEY=your-api-key-here
+# Sign up / log in at: https://platform.openai.com/
+# Create an API key and add it to your .env file
+OPENAI_API_KEY=your-openai-api-key-here
 ```
+
+2) NewsAPI (optional — used to fetch recent news headlines)
+```bash
+# Sign up at: https://newsapi.org/
+# Create an API key and add it to your .env file
+NEWSAPI_KEY=your-newsapi-key-here
+```
+
+Notes:
+- The NewsAPI key is optional; if not provided the app will fall back to yfinance's news (when available).
+- Do NOT commit your `.env` file to git. The repository already includes `.gitignore` entries to exclude env files.（不要把 `.env` 提交到仓库）
 
 **Start Server | 启动服务:**
 ```bash
@@ -103,8 +117,10 @@ Required fields | 必填字段: `id, symbol, side, size, entry_price, timestamp`
 |----------|--------|-------------|------|
 | `/api/v1/market` | GET | Market data + AI explanation | 市场数据 + AI解读 |
 | `/api/v1/market/chart` | GET | Price chart data | 价格图表数据 |
+| `/api/v1/market/with-news` | GET | Market data + recent news headlines | 市场数据 + 最新新闻头条 |
 | `/api/v1/behavior` | POST | Trade pattern analysis | 交易模式分析 |
 | `/api/v1/content` | POST | Generate persona posts | 生成人设帖子 |
+| `/api/v1/chat` | POST | Conversational chat: send message history and current prompt, receive assistant reply | 与AI对话；发送消息历史和当前提示，返回助手回复 |
 
 ### Parameters | 参数
 
