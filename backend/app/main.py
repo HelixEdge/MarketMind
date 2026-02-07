@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import Settings
 from app.api.v1.router import api_router
+from app.services.claude_engine import claude_engine
+
 settings = Settings()
 
 app = FastAPI(
@@ -18,6 +20,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.on_event("startup")
+async def startup_event():
+    """Log API configuration on startup."""
+    print("\n" + "="*60)
+    print("🚀 Intelligent Trading Analyst API Startup")
+    print("="*60)
+    if claude_engine.client:
+        print(f"✓ AI Service: READY (Model: {claude_engine.model})")
+    else:
+        print(f"⚠ AI Service: OFFLINE - Using fallback responses")
+        print(f"  → Set OPENAI_API_KEY environment variable to enable AI")
+    print("="*60 + "\n")
 
 app.include_router(api_router, prefix="/api/v1")
 

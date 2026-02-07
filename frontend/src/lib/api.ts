@@ -3,6 +3,9 @@ import type {
   BehaviorResponse,
   ContentRequest,
   ContentResponse,
+
+  InsightRequest,
+  InsightResponse,
   Persona,
   Platform,
 } from "@/types";
@@ -29,11 +32,13 @@ async function fetchApi<T>(
 }
 
 export async function getMarketData(
+  symbol: string = "EURUSD=X",
   simulateDrop: boolean = false,
-  symbol: string = "EURUSD=X"
+  simulateRise: boolean = false,
 ): Promise<MarketResponse> {
   const params = new URLSearchParams({
     simulate_drop: simulateDrop.toString(),
+    simulate_rise: simulateRise.toString(),
     include_coaching: "true",
     symbol,
   });
@@ -52,11 +57,13 @@ export interface ChartResponse {
 }
 
 export async function getChartData(
+  symbol: string = "EURUSD=X",
   simulateDrop: boolean = false,
-  symbol: string = "EURUSD=X"
+  simulateRise: boolean = false,
 ): Promise<ChartResponse> {
   const params = new URLSearchParams({
     simulate_drop: simulateDrop.toString(),
+    simulate_rise: simulateRise.toString(),
     symbol,
     points: "50",
   });
@@ -82,17 +89,33 @@ export async function getBehaviorAnalysis(trades?: TradeData[]): Promise<Behavio
   });
 }
 
+export async function getCoachingInsight(
+  marketContext: string,
+  behaviorContext?: string
+): Promise<InsightResponse> {
+  const request: InsightRequest = {
+    market_context: marketContext,
+    behavior_context: behaviorContext,
+  };
+  return fetchApi<InsightResponse>("/insight", {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
+
 export async function generateContent(
   marketContext: string,
   persona: Persona,
   platform: Platform,
-  behaviorContext?: string
+  behaviorContext?: string,
+  coachingInsight?: string
 ): Promise<ContentResponse> {
   const request: ContentRequest = {
     market_context: marketContext,
     persona,
     platform,
     behavior_context: behaviorContext,
+    coaching_insight: coachingInsight,
   };
 
   return fetchApi<ContentResponse>("/content", {
@@ -104,13 +127,14 @@ export async function generateContent(
 export async function generateAllContent(
   marketContext: string,
   platform: Platform,
-  behaviorContext?: string
+  behaviorContext?: string,
+  coachingInsight?: string
 ): Promise<Record<Persona, ContentResponse>> {
   const personas: Persona[] = ["calm_analyst", "data_nerd", "trading_coach"];
 
   const results = await Promise.all(
     personas.map((persona) =>
-      generateContent(marketContext, persona, platform, behaviorContext)
+      generateContent(marketContext, persona, platform, behaviorContext, coachingInsight)
     )
   );
 
@@ -125,6 +149,7 @@ export interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp?: string;
+  suggestions?: string[];
 }
 
 export interface ChatResponsePayload {

@@ -15,6 +15,9 @@ class PatternType(str, Enum):
     REVENGE_TRADE = "revenge_trade"
     OVERSIZING = "oversizing"
     RAPID_REENTRY = "rapid_reentry"
+    CONSISTENT_SIZING = "consistent_sizing"
+    NO_REVENGE_TRADES = "no_revenge_trades"
+    IMPROVING_STREAK = "improving_streak"
 
 
 class Persona(str, Enum):
@@ -25,7 +28,7 @@ class Persona(str, Enum):
 
 class Platform(str, Enum):
     LINKEDIN = "linkedin"
-    TWITTER = "twitter"
+    X = "x"
 
 
 class Trade(BaseModel):
@@ -81,6 +84,7 @@ class BehaviorPattern(BaseModel):
     description: str
     severity: RiskLevel
     details: dict
+    is_positive: bool = False
 
 
 class BehaviorRequest(BaseModel):
@@ -94,9 +98,22 @@ class BehaviorResponse(BaseModel):
     summary: str
 
 
+
+class InsightRequest(BaseModel):
+    market_context: str
+    behavior_context: Optional[str] = None
+
+
+class InsightResponse(BaseModel):
+    coaching_insight: str
+    market_context: str
+    behavior_context: Optional[str] = None
+
+
 class ContentRequest(BaseModel):
     market_context: str
     behavior_context: Optional[str] = None
+    coaching_insight: Optional[str] = None
     persona: Persona
     platform: Platform
 

@@ -38,7 +38,7 @@ def load_sample_trades() -> list[Trade]:
 
 
 @router.post("", response_model=BehaviorResponse)
-async def analyze_behavior(request: Optional[BehaviorRequest] = None):
+def analyze_behavior(request: Optional[BehaviorRequest] = None):
     """
     Analyze trading behavior and detect patterns.
 
@@ -60,7 +60,7 @@ async def analyze_behavior(request: Optional[BehaviorRequest] = None):
 
 
 @router.get("/sample")
-async def get_sample_analysis():
+def get_sample_analysis():
     """
     Get behavior analysis using sample trade data.
     Useful for demo purposes.

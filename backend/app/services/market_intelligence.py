@@ -130,12 +130,14 @@ class MarketIntelligenceService:
 
         return False, None
 
-    def get_market_data(self, simulate_drop: bool = False) -> MarketData:
+    def get_market_data(self, simulate_drop: bool = False, simulate_rise: bool = False) -> MarketData:
         """Get current market data with indicators."""
         df = self.fetch_market_data()
 
         if simulate_drop:
             df = self._simulate_drop(df)
+        elif simulate_rise:
+            df = self._simulate_rise(df)
 
         indicators = self.calculate_indicators(df)
         is_spike, spike_direction = self.detect_spike(df)
@@ -144,25 +146,28 @@ class MarketIntelligenceService:
         previous_price = float(df["Close"].iloc[-2]) if len(df) > 1 else current_price
         change_pct = ((current_price - previous_price) / previous_price) * 100 if previous_price > 0 else 0.0
 
+        simulated = simulate_drop or simulate_rise
+        sim_direction = "down" if simulate_drop else ("up" if simulate_rise else None)
+
         return MarketData(
             symbol=self.symbol.replace("=X", ""),
             current_price=round(current_price, 5),
             previous_price=round(previous_price, 5),
             change_pct=round(change_pct, 2),
             indicators=indicators,
-            is_spike=is_spike or simulate_drop,
-            spike_direction=spike_direction or ("down" if simulate_drop else None),
+            is_spike=is_spike or simulated,
+            spike_direction=spike_direction or sim_direction,
             timestamp=datetime.now()
         )
 
-    def get_market_with_news(self, simulate_drop: bool = False, news_limit: int = 3) -> MarketWithNewsResponse:
+    def get_market_with_news(self, simulate_drop: bool = False, simulate_rise: bool = False, news_limit: int = 3) -> MarketWithNewsResponse:
         """Return a MarketWithNewsResponse combining current market data and recent news headlines.
 
         - `simulate_drop`: whether to apply the 3% demo drop to the most recent candle
         - `news_limit`: maximum number of news items to return
         """
         # Fetch market model (already includes indicators)
-        market_model = self.get_market_data(simulate_drop=simulate_drop)
+        market_model = self.get_market_data(simulate_drop=simulate_drop, simulate_rise=simulate_rise)
 
         # Fetch news: prefer NewsAPI (if key present), otherwise fall back to yfinance
         news_items = []
@@ -248,6 +253,22 @@ class MarketIntelligenceService:
 
         # Simulate volume spike
         df.iloc[-1, df.columns.get_loc("Volume")] *= 2.5
+
+        return df
+
+    def _simulate_rise(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Simulate an 8% market rise for demo purposes."""
+        df = df.copy()
+        if len(df) < 2:
+            return df
+
+        # Simulate 8% rise
+        rise_factor = 1.08
+        df.iloc[-1, df.columns.get_loc("Close")] *= rise_factor
+        df.iloc[-1, df.columns.get_loc("High")] *= rise_factor
+
+        # Simulate volume spike
+        df.iloc[-1, df.columns.get_loc("Volume")] *= 3.0
 
         return df
 

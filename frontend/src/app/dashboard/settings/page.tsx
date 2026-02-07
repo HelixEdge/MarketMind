@@ -26,7 +26,6 @@ const fadeInUp = {
 const symbols = [
   { value: "EURUSD=X", label: "EUR/USD" },
   { value: "GBPUSD=X", label: "GBP/USD" },
-  { value: "USDJPY=X", label: "USD/JPY" },
   { value: "BTC-USD", label: "BTC/USD" },
   { value: "ETH-USD", label: "ETH/USD" },
 ];

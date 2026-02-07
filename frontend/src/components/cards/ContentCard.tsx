@@ -1,18 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, Copy, Check, Linkedin, Twitter } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, Copy, Check, Linkedin, Share2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ContentResponse, Persona } from "@/types";
 
+// X Icon Component
+function XIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-label="X"
+    >
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24h-6.514l-5.106-6.694L2.896 21.75H-1.08l7.73-8.835L-1.08 2.25h6.514l4.888 6.469L15.939 2.25h.305zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
 interface ContentCardProps {
   data: Record<Persona, ContentResponse> | null;
   isLoading: boolean;
-  platform: "linkedin" | "twitter";
-  onPlatformChange: (platform: "linkedin" | "twitter") => void;
+  platform: "linkedin" | "x";
+  onPlatformChange: (platform: "linkedin" | "x") => void;
 }
 
 const personaLabels: Record<Persona, { label: string; emoji: string }> = {
@@ -21,6 +35,8 @@ const personaLabels: Record<Persona, { label: string; emoji: string }> = {
   trading_coach: { label: "Trading Coach", emoji: "" },
 };
 
+
+
 export function ContentCard({
   data,
   isLoading,
@@ -28,12 +44,38 @@ export function ContentCard({
   onPlatformChange,
 }: ContentCardProps) {
   const [copiedPersona, setCopiedPersona] = useState<Persona | null>(null);
+  const [activeTab, setActiveTab] = useState<Persona>("calm_analyst");
 
   const handleCopy = async (content: string, persona: Persona) => {
     await navigator.clipboard.writeText(content);
     setCopiedPersona(persona);
     setTimeout(() => setCopiedPersona(null), 2000);
   };
+
+  const handleShareX = (content: string) => {
+    window.open(
+      "https://x.com/intent/tweet?text=" + encodeURIComponent(content),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  const handleShareLinkedin = (content: string) => {
+    window.open(
+      "https://www.linkedin.com/feed/?shareActive=true&text=" + encodeURIComponent(content),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  };
+
+  // Re-render tabs when platform changes to show updated content
+  useEffect(() => {
+    // Force re-render of tabs by keeping activeTab valid
+    setActiveTab((prev) => {
+      const validPersonas = Object.keys(personaLabels) as Persona[];
+      return validPersonas.includes(prev) ? prev : "calm_analyst";
+    });
+  }, [platform]);
 
   if (isLoading) {
     return (
@@ -88,18 +130,18 @@ export function ContentCard({
               LinkedIn
             </Button>
             <Button
-              variant={platform === "twitter" ? "default" : "outline"}
+              variant={platform === "x" ? "default" : "outline"}
               size="sm"
-              onClick={() => onPlatformChange("twitter")}
+              onClick={() => onPlatformChange("x")}
             >
-              <Twitter className="h-4 w-4 mr-1" />
-              Twitter
+              <XIcon className="h-4 w-4 mr-1" />
+              X
             </Button>
           </div>
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <Tabs defaultValue="calm_analyst">
+      <CardContent className="space-y-4">
+        <Tabs key={`${platform}`} value={activeTab} onValueChange={(v) => setActiveTab(v as Persona)}>
           <TabsList className="w-full">
             {(Object.keys(personaLabels) as Persona[]).map((persona) => (
               <TabsTrigger
@@ -115,18 +157,22 @@ export function ContentCard({
           {(Object.keys(personaLabels) as Persona[]).map((persona) => (
             <TabsContent key={persona} value={persona}>
               <div className="mt-4 space-y-3">
-                <div className="rounded-lg bg-gray-50 p-4 min-h-[120px]">
-                  <p className="text-sm whitespace-pre-wrap">
+                <div className="rounded-lg bg-gray-50 p-4 min-h-[120px] dark:bg-gray-800">
+                  <p className="text-sm whitespace-pre-wrap dark:text-gray-200">
                     {data[persona]?.content || "Content not available"}
                   </p>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-wrap">
                     {data[persona]?.hashtags.map((tag, i) => (
                       <span
                         key={i}
-                        className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded"
+                        className={`text-xs px-2 py-1 rounded font-medium ${
+                          platform === "linkedin"
+                            ? "text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-950"
+                            : "text-white bg-black dark:text-black dark:bg-white border border-black dark:border-white"
+                        }`}
                       >
                         {tag}
                       </span>
@@ -157,6 +203,27 @@ export function ContentCard({
                       )}
                     </Button>
                   </div>
+                </div>
+
+                {/* Share buttons */}
+                <div className="flex gap-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                  <Share2 className="h-4 w-4 text-gray-400 mt-1.5" />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleShareX(data[persona]?.content || "")}
+                  >
+                    <XIcon className="h-4 w-4 mr-1" />
+                    Share to X
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleShareLinkedin(data[persona]?.content || "")}
+                  >
+                    <Linkedin className="h-4 w-4 mr-1" />
+                    Share to LinkedIn
+                  </Button>
                 </div>
               </div>
             </TabsContent>

@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingDown } from "lucide-react";
+import { useTheme } from "@/components/providers/ThemeProvider";
 
 interface ChartDataPoint {
   time: string;
@@ -26,6 +27,15 @@ interface PriceChartProps {
 }
 
 export function PriceChart({ data, symbol, isLoading }: PriceChartProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  const gridColor = isDark ? "#374151" : "#e5e7eb";
+  const tickColor = isDark ? "#9ca3af" : "#6b7280";
+  const tooltipBg = isDark ? "#1f2937" : "#ffffff";
+  const tooltipBorder = isDark ? "#374151" : "#e5e7eb";
+  const tooltipText = isDark ? "#f3f4f6" : "#111827";
+
   if (isLoading) {
     return (
       <Card>
@@ -81,17 +91,17 @@ export function PriceChart({ data, symbol, isLoading }: PriceChartProps) {
                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               dataKey="time"
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: tickColor }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
               domain={[minPrice - pricePadding, maxPrice + pricePadding]}
-              tick={{ fontSize: 11 }}
+              tick={{ fontSize: 11, fill: tickColor }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(value) => value.toFixed(4)}
@@ -99,10 +109,11 @@ export function PriceChart({ data, symbol, isLoading }: PriceChartProps) {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #e5e7eb",
+                backgroundColor: tooltipBg,
+                border: `1px solid ${tooltipBorder}`,
                 borderRadius: "8px",
                 fontSize: "12px",
+                color: tooltipText,
               }}
               formatter={(value) => [Number(value).toFixed(5), "Price"]}
             />

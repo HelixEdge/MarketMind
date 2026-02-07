@@ -64,7 +64,7 @@ export default function Home() {
               Content Generator
             </h3>
             <p className="text-gray-400">
-              Three distinct personas for social posts. LinkedIn and Twitter
+              Three distinct personas for social posts. LinkedIn and X
               optimized. One-click copy to clipboard.
             </p>
           </div>

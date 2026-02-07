@@ -9,22 +9,36 @@ class AIEngine:
     def __init__(self):
         settings = Settings()
         self.client = None
-        if settings.OPENAI_API_KEY:
-            if settings.MODEL_BASE_URL:
-                self.client = OpenAI(api_key=settings.OPENAI_API_KEY, base_url=settings.MODEL_BASE_URL)
-            else:
-                self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.api_key = settings.OPENAI_API_KEY
         self.model = settings.MODEL
+        
+        # Only initialize client if API key is provided
+        if self.api_key and self.api_key.strip():
+            try:
+                if settings.MODEL_BASE_URL:
+                    self.client = OpenAI(api_key=self.api_key, base_url=settings.MODEL_BASE_URL)
+                else:
+                    self.client = OpenAI(api_key=self.api_key)
+                print(f"✓ AI Engine initialized with model: {self.model}")
+            except Exception as e:
+                print(f"✗ Failed to initialize OpenAI client: {e}")
+                self.client = None
+        else:
+            print("⚠ Warning: OPENAI_API_KEY not set. Using fallback responses.")
 
     def _call_llm(self, prompt: str, max_tokens: int = 200) -> str:
         """Make a call to OpenAI API."""
         if not self.client:
+            if not self.api_key or not self.api_key.strip():
+                print("No API key configured. Using fallback response.")
+            else:
+                print("Client not initialized. Using fallback response.")
             return self._get_fallback_response(prompt)
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
@@ -84,11 +98,43 @@ Guidelines:
 
         return self._call_llm(prompt, max_tokens=1000)
 
+    def generate_coaching_insight(self, market_context: str, behavior_context: Optional[str] = None) -> str:
+        """Generate a fused coaching insight: 'Market did X, you tend to Y'."""
+        behavior_text = behavior_context or "No concerning patterns — trader is disciplined."
+
+        prompt = f"""You are a positive, experienced trading coach.
+
+Market Event (X): {market_context}
+Trader Pattern (Y): {behavior_text}
+
+Write 2-3 sentences connecting X and Y as a supportive coach.
+- Always positive and empowering
+- Frame risks as growth opportunities
+- Celebrate healthy habits when present
+- Use the style: "Market did X, and based on your history, you tend to Y"
+- No predictions, no signals, no financial advice"""
+
+        return self._call_llm(prompt, max_tokens=300)
+
     def _get_fallback_chat_response(self, user_prompt: str) -> str:
         """Provide a short fallback assistant response when the LLM is unavailable."""
-        if user_prompt and "drop" in user_prompt.lower():
-            return "I see you mentioned a market drop. Take a breath—this looks like volatility; review your plan and avoid reacting impulsively."
-        return "I can't reach the AI service right now. Quick tip: stay disciplined and review your trading plan before acting."
+        if not user_prompt:
+            return "I'm here to help with your trading mindset and discipline. What's on your mind?"
+        
+        prompt_lower = user_prompt.lower()
+        
+        if "loss" in prompt_lower or "down" in prompt_lower:
+            return "Markets move sharply sometimes. When they do, it's your mindset that matters most. Take a breath, review your plan, and remember: losses are part of the journey. What matters is how you respond."
+        elif "revenge" in prompt_lower:
+            return "Revenge trading is one of the biggest traps. Here's the key: after a loss, your job isn't to win it back immediately—it's to stay calm and follow your plan. Trust the process over emotions."
+        elif "discipline" in prompt_lower or "mindset" in prompt_lower:
+            return "Discipline beats intelligence in trading. It's the ability to follow your plan when emotions are high. Start with one thing: write down your trading rules, and commit to them before each trade."
+        elif "pattern" in prompt_lower or "behavior" in prompt_lower:
+            return "Great question. Your trading patterns reveal a lot about your emotional triggers. Review them, identify where you deviate from your plan, and that's where you grow."
+        elif "streak" in prompt_lower or "winning" in prompt_lower:
+            return "Winning streaks can be dangerous—overconfidence often follows. Stay grounded. Keep your position sizing consistent, stick to your rules, and remember that staying disciplined is harder during wins than losses."
+        else:
+            return "I appreciate the question. While I'm having connection issues right now, here's what I know: the best traders aren't the ones who predict markets—they're the ones who manage emotions. Your discipline matters most."
 
     def chat(self, messages: list[ChatMessage], model: Optional[str] = None, max_tokens: int = 150) -> ChatResponse:
         """Chat interface: accepts a list of messages (history + current prompt) and returns assistant response."""
@@ -106,7 +152,7 @@ Guidelines:
         try:
             response = self.client.chat.completions.create(
                 model=model or self.model,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 messages=api_messages
             )
             content = response.choices[0].message.content

@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.post("", response_model=ContentResponse)
-async def generate_content(request: ContentRequest):
+def generate_content(request: ContentRequest):
     """
     Generate social media content with a specific persona voice.
 
@@ -22,22 +22,30 @@ async def generate_content(request: ContentRequest):
 
     Platforms:
     - linkedin: Up to 1300 characters, professional tone
-    - twitter: Up to 280 characters, punchy and engaging
+    - x: Up to 280 characters, punchy threads
+
+    Content Types (optional):
+    - event_explainer: What happened and why it matters
+    - educational_thread: Teaching moment from market event
+    - weekly_brief: Broader market themes
+    - chart_post: You-trade-like-this style
     """
     response = content_generator.generate_content(
         market_context=request.market_context,
         persona=request.persona,
         platform=request.platform,
-        behavior_context=request.behavior_context
+        behavior_context=request.behavior_context,
+        coaching_insight=request.coaching_insight,
     )
 
     return response
 
 
 @router.post("/all")
-async def generate_all_personas(
+def generate_all_personas(
     market_context: str,
     behavior_context: Optional[str] = None,
+    coaching_insight: Optional[str] = None,
     platform: Platform = Platform.LINKEDIN
 ):
     """
@@ -45,13 +53,13 @@ async def generate_all_personas(
     Useful for comparing different voice options.
     """
     results = {}
-
     for persona in Persona:
         content = content_generator.generate_content(
             market_context=market_context,
             persona=persona,
             platform=platform,
-            behavior_context=behavior_context
+            behavior_context=behavior_context,
+            coaching_insight=coaching_insight,
         )
         results[persona.value] = content
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Brain, AlertTriangle, TrendingDown, Repeat, Maximize } from "lucide-react";
+import { Brain, AlertTriangle, TrendingDown, Repeat, Maximize, CheckCircle, Shield, TrendingUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,6 +20,9 @@ const patternIcons: Record<PatternType, React.ReactNode> = {
   revenge_trade: <AlertTriangle className="h-4 w-4" />,
   oversizing: <Maximize className="h-4 w-4" />,
   rapid_reentry: <Repeat className="h-4 w-4" />,
+  consistent_sizing: <CheckCircle className="h-4 w-4" />,
+  no_revenge_trades: <Shield className="h-4 w-4" />,
+  improving_streak: <TrendingUp className="h-4 w-4" />,
 };
 
 const patternLabels: Record<PatternType, string> = {
@@ -27,6 +30,9 @@ const patternLabels: Record<PatternType, string> = {
   revenge_trade: "Revenge Trading",
   oversizing: "Oversizing",
   rapid_reentry: "Rapid Re-entry",
+  consistent_sizing: "Consistent Sizing",
+  no_revenge_trades: "No Revenge Trades",
+  improving_streak: "Improving Streak",
 };
 
 export function BehaviorCard({ data, isLoading, onTradesUpload, hasCustomTrades }: BehaviorCardProps) {
@@ -81,6 +87,9 @@ export function BehaviorCard({ data, isLoading, onTradesUpload, hasCustomTrades 
       ? "warning"
       : "success";
 
+  const negativePatterns = data.patterns.filter((p) => !p.is_positive);
+  const positivePatterns = data.patterns.filter((p) => p.is_positive);
+
   return (
     <Card>
       <CardHeader>
@@ -102,10 +111,10 @@ export function BehaviorCard({ data, isLoading, onTradesUpload, hasCustomTrades 
       <CardContent className="space-y-4">
         <p className="text-sm text-gray-600 dark:text-gray-400">{data.summary}</p>
 
-        {data.patterns.length > 0 && (
+        {negativePatterns.length > 0 && (
           <div className="space-y-3">
             <p className="text-sm font-medium dark:text-white">Detected Patterns:</p>
-            {data.patterns.map((pattern, index) => (
+            {negativePatterns.map((pattern, index) => (
               <div
                 key={index}
                 className={`flex items-start gap-3 rounded-lg border p-3 ${
@@ -132,6 +141,28 @@ export function BehaviorCard({ data, isLoading, onTradesUpload, hasCustomTrades 
                     {patternLabels[pattern.pattern_type]}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">{pattern.description}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {positivePatterns.length > 0 && (
+          <div className="space-y-3">
+            <p className="text-sm font-medium text-green-700 dark:text-green-400">Healthy Habits:</p>
+            {positivePatterns.map((pattern, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950"
+              >
+                <div className="mt-0.5 text-green-600 dark:text-green-400">
+                  {patternIcons[pattern.pattern_type]}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">
+                    {patternLabels[pattern.pattern_type]}
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-400">{pattern.description}</p>
                 </div>
               </div>
             ))}

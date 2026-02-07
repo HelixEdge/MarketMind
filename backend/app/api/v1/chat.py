@@ -3,16 +3,15 @@ from pathlib import Path
 from datetime import datetime
 
 from app.models.schemas import ChatRequest, ChatResponse, ChatMessage
-from app.services.claude_engine import AIEngine
+from app.services.claude_engine import claude_engine
 
 router = APIRouter()
 
 
 @router.post("", response_model=ChatResponse)
-async def chat_endpoint(request: ChatRequest):
+def chat_endpoint(request: ChatRequest):
     """Chat with the AI: accepts message history + current prompt and optional system prompt key/override."""
-    claude_engine = AIEngine()
-
+    # Use the module-level singleton instance instead of creating a new one
     # Prepare messages list (copy to avoid mutating request)
     messages = list(request.messages)
 

@@ -9,9 +9,10 @@ router = APIRouter()
 
 
 @router.get("", response_model=MarketResponse)
-async def get_market_data(
+def get_market_data(
     symbol: str = Query(default="EURUSD=X", description="Trading symbol"),
     simulate_drop: bool = Query(default=False, description="Simulate a 3% market drop"),
+    simulate_rise: bool = Query(default=False, description="Simulate an 8% market rise"),
     include_coaching: bool = Query(default=True, description="Include coaching message")
 ):
     """
@@ -20,18 +21,18 @@ async def get_market_data(
     - Fetches real-time market data via yfinance
     - Calculates technical indicators (RSI, ATR, Volume Ratio)
     - Generates Claude-powered market explanation
-    - Optionally simulates a 3% drop for demo purposes
+    - Optionally simulates a 3% drop or 8% rise for demo purposes
     """
     market_service = MarketIntelligenceService(symbol=symbol)
-    
+
     claude_engine = AIEngine()
     # Update symbol if different
     if symbol != market_service.symbol:
         market_service.symbol = symbol
 
     # Get market data
-    market_data = market_service.get_market_data(simulate_drop=simulate_drop)
-    market_data_with_news = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=3)
+    market_data = market_service.get_market_data(simulate_drop=simulate_drop, simulate_rise=simulate_rise)
+    market_data_with_news = market_service.get_market_with_news(simulate_drop=simulate_drop, simulate_rise=simulate_rise, news_limit=3)
 
     # Generate explanation
     explanation = claude_engine.explain_market_move(market_data_with_news)
@@ -49,7 +50,7 @@ async def get_market_data(
 
 
 @router.get("/indicators")
-async def get_indicators(symbol: str = Query(default="EURUSD=X")):
+def get_indicators(symbol: str = Query(default="EURUSD=X")):
     """Get raw technical indicators without explanation."""
     market_service = MarketIntelligenceService(symbol=symbol)
     if symbol != market_service.symbol:
@@ -72,9 +73,10 @@ async def get_indicators(symbol: str = Query(default="EURUSD=X")):
 
 
 @router.get("/chart")
-async def get_chart_data(
+def get_chart_data(
     symbol: str = Query(default="EURUSD=X"),
     simulate_drop: bool = Query(default=False),
+    simulate_rise: bool = Query(default=False),
     points: int = Query(default=50, ge=10, le=100)
 ):
     """Get historical price data for charting."""
@@ -87,6 +89,8 @@ async def get_chart_data(
 
     if simulate_drop:
         df = market_service._simulate_drop(df)
+    elif simulate_rise:
+        df = market_service._simulate_rise(df)
 
     # Get last N points
     df_subset = df.tail(points)
@@ -106,15 +110,16 @@ async def get_chart_data(
 
 
 @router.get("/with-news", response_model=MarketWithNewsResponse)
-async def get_market_with_news(
+def get_market_with_news(
     symbol: str = Query(default="EURUSD=X", description="Trading symbol"),
     simulate_drop: bool = Query(default=False, description="Simulate a 3% market drop"),
+    simulate_rise: bool = Query(default=False, description="Simulate an 8% market rise"),
     news_limit: int = Query(default=3, ge=1, le=10)
 ):
     """Get current market data along with recent news headlines."""
     market_service = MarketIntelligenceService(symbol=symbol)
 
-    result = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=news_limit)
+    result = market_service.get_market_with_news(simulate_drop=simulate_drop, simulate_rise=simulate_rise, news_limit=news_limit)
 
     return {
         "market": result.market,

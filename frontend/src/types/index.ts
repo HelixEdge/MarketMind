@@ -1,7 +1,14 @@
 export type RiskLevel = "low" | "medium" | "high";
-export type PatternType = "loss_streak" | "revenge_trade" | "oversizing" | "rapid_reentry";
+export type PatternType =
+  | "loss_streak"
+  | "revenge_trade"
+  | "oversizing"
+  | "rapid_reentry"
+  | "consistent_sizing"
+  | "no_revenge_trades"
+  | "improving_streak";
 export type Persona = "calm_analyst" | "data_nerd" | "trading_coach";
-export type Platform = "linkedin" | "twitter";
+export type Platform = "linkedin" | "x";
 
 export interface MarketIndicators {
   rsi: number;
@@ -32,6 +39,7 @@ export interface BehaviorPattern {
   description: string;
   severity: RiskLevel;
   details: Record<string, number>;
+  is_positive: boolean;
 }
 
 export interface BehaviorResponse {
@@ -44,6 +52,8 @@ export interface BehaviorResponse {
 export interface ContentRequest {
   market_context: string;
   behavior_context?: string;
+  coaching_insight?: string;
+  content_type?: string;
   persona: Persona;
   platform: Platform;
 }
@@ -54,4 +64,15 @@ export interface ContentResponse {
   content: string;
   hashtags: string[];
   char_count: number;
+}
+
+export interface InsightRequest {
+  market_context: string;
+  behavior_context?: string;
+}
+
+export interface InsightResponse {
+  coaching_insight: string;
+  market_context: string;
+  behavior_context?: string;
 }

@@ -22,7 +22,7 @@ PERSONA_PROMPTS = {
 
 PLATFORM_LIMITS = {
     Platform.LINKEDIN: 1300,
-    Platform.TWITTER: 280
+    Platform.X: 280
 }
 
 
@@ -37,54 +37,74 @@ class ContentGenerator:
                 self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
         self.model = settings.MODEL
 
-    def _call_llm(self, prompt: str, max_tokens: int = 400) -> str:
+    def _call_llm(self, prompt: str, platform: Platform, max_tokens: int = 400) -> str:
         """Make a call to OpenAI API."""
         if not self.client:
-            return self._get_fallback_content(prompt)
+            return self._get_fallback_content(prompt, platform)
 
         try:
             response = self.client.chat.completions.create(
                 model=self.model,
-                max_tokens=max_tokens,
+                max_completion_tokens=max_tokens,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            if not content or not content.strip():
+                return self._get_fallback_content(prompt, platform)
+            return content
         except Exception as e:
             print(f"Error calling OpenAI API for content generation: {e}")
-            return self._get_fallback_content(prompt)
+            return self._get_fallback_content(prompt, platform)
 
-    def _get_fallback_content(self, prompt: str) -> str:
+    def _get_fallback_content(self, prompt: str, platform: Platform) -> str:
         """Provide fallback content when API is unavailable."""
-        if "calm_analyst" in prompt.lower() or "calm analyst" in prompt.lower():
-            return "Markets moved sharply today. In times like this, remember: clarity over reactivity. The traders who thrive aren't the ones who react fastest—they're the ones who think clearest.\n\nWhat we're seeing is volatility, not the end of the world. Step back. Breathe. Then decide."
-        elif "data_nerd" in prompt.lower() or "data nerd" in prompt.lower():
-            return "The numbers don't lie: we just saw a 3% move with 2.5x average volume. RSI hit oversold territory at 28.\n\nStatistically speaking, moves of this magnitude occur roughly 2-3 times per quarter. Context matters more than panic."
-        elif "trading_coach" in prompt.lower() or "trading coach" in prompt.lower():
-            return "I've seen this pattern hundreds of times. Sharp drop, high volume, everyone panicking.\n\nThis is exactly where discipline separates the professionals from the amateurs. The best traders I know? They're not trading right now. They're observing."
-        return "Markets are moving. Stay focused on your process, not the noise."
+        if platform == Platform.X:
+            if "calm_analyst" in prompt.lower() or "calm analyst" in prompt.lower():
+                return "Markets moved sharply today. In times like this, remember: clarity over reactivity. The traders who thrive think clearest, not fastest. #Trading #StayClear"
+            elif "data_nerd" in prompt.lower() or "data nerd" in prompt.lower():
+                return "3% move. 2.5x avg volume. RSI at 28. The numbers tell the story—moves like this hit 2-3 times per quarter. Context > panic. #TradingData #Markets"
+            elif "trading_coach" in prompt.lower() or "trading coach" in prompt.lower():
+                return "Sharp drop, high volume, everyone panicking. I've seen this before. The best traders? They're observing, not reacting. Discipline wins. #TradingMindset"
+            return "Markets are moving. Stay focused on your process, not the noise. #Trading"
+        else:
+            if "calm_analyst" in prompt.lower() or "calm analyst" in prompt.lower():
+                return "Markets moved sharply today. In times like this, remember: clarity over reactivity. The traders who thrive aren't the ones who react fastest—they're the ones who think clearest.\n\nWhat we're seeing is volatility, not the end of the world. Step back. Breathe. Then decide."
+            elif "data_nerd" in prompt.lower() or "data nerd" in prompt.lower():
+                return "The numbers don't lie: we just saw a 3% move with 2.5x average volume. RSI hit oversold territory at 28.\n\nStatistically speaking, moves of this magnitude occur roughly 2-3 times per quarter. Context matters more than panic."
+            elif "trading_coach" in prompt.lower() or "trading coach" in prompt.lower():
+                return "I've seen this pattern hundreds of times. Sharp drop, high volume, everyone panicking.\n\nThis is exactly where discipline separates the professionals from the amateurs. The best traders I know? They're not trading right now. They're observing."
+            return "Markets are moving. Stay focused on your process, not the noise."
 
     def generate_content(
         self,
         market_context: str,
         persona: Persona,
         platform: Platform,
-        behavior_context: Optional[str] = None
+        behavior_context: Optional[str] = None,
+        coaching_insight: Optional[str] = None,
     ) -> ContentResponse:
         """Generate social media content for a specific persona and platform."""
         persona_config = PERSONA_PROMPTS[persona]
         char_limit = PLATFORM_LIMITS[platform]
 
-        behavior_section = ""
-        if behavior_context:
-            behavior_section = f"\nTrader Insight: {behavior_context}"
+        # Build the context section — prefer coaching insight (from Step 3) over raw contexts
+        if coaching_insight:
+            context_section = f"""COACHING INSIGHT (personal):
+{coaching_insight}
 
-        platform_guidance = ""
-        if platform == Platform.TWITTER:
-            platform_guidance = "Write a punchy, engaging tweet. Maximum 280 characters including hashtags. No emojis unless essential."
+ORIGINAL MARKET CONTEXT:
+{market_context}"""
         else:
-            platform_guidance = "Write a thoughtful LinkedIn post. 2-3 short paragraphs. Professional tone. Include a call-to-action or reflection question at the end."
+            context_section = f"MARKET CONTEXT:\n{market_context}"
+            if behavior_context:
+                context_section += f"\nTrader Insight: {behavior_context}"
+
+        if platform == Platform.X:
+            platform_guidance = "CRITICAL PLATFORM CONSTRAINT — X (Twitter): Write ONE single punchy tweet. MUST be under 280 characters total including hashtags. NO multi-paragraph content. NO line breaks. One concise, bold, conversation-starting statement with 2-3 hashtags."
+        else:
+            platform_guidance = "CRITICAL PLATFORM CONSTRAINT — LinkedIn: Write 2-3 short paragraphs, minimum 400 characters. Professional, authoritative tone. Include a call-to-action or reflection question at the end. Establish credibility."
 
         prompt = f"""You are a social media content creator with the following persona:
 
@@ -92,11 +112,9 @@ PERSONA: {persona.value.replace("_", " ").title()}
 VOICE: {persona_config["voice"]}
 STYLE: {persona_config["style"]}
 
-MARKET CONTEXT:
-{market_context}{behavior_section}
-
-PLATFORM: {platform.value.title()}
 {platform_guidance}
+
+{context_section}
 
 CHARACTER LIMIT: {char_limit}
 
@@ -105,11 +123,12 @@ Write engaging content that:
 2. Provides value to traders
 3. Stays brand-safe (no predictions, no financial advice)
 4. Matches the persona voice exactly
-5. Includes 2-3 relevant hashtags at the end
+5. Strictly respects the platform format and character limit
+6. Includes 2-3 relevant hashtags at the end
 
 Output ONLY the post content with hashtags. No explanations."""
 
-        content = self._call_llm(prompt, max_tokens=400)
+        content = self._call_llm(prompt, platform, max_tokens=400)
 
         # Extract hashtags from content
         hashtags = self._extract_hashtags(content)

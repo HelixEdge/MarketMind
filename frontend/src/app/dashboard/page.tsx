@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useChat } from "@/components/providers/ChatProvider";
 import { MarketCard } from "@/components/cards/MarketCard";
 import { BehaviorCard } from "@/components/cards/BehaviorCard";
+import { InsightCard } from "@/components/cards/InsightCard";
 import { ContentCard } from "@/components/cards/ContentCard";
 import { PriceChart } from "@/components/charts/PriceChart";
 import { SimulateButton } from "@/components/features/SimulateButton";
@@ -11,6 +14,7 @@ import { SymbolSelector } from "@/components/features/SymbolSelector";
 import {
   getMarketData,
   getBehaviorAnalysis,
+  getCoachingInsight,
   generateAllContent,
   getChartData,
   type ChartDataPoint,
@@ -19,6 +23,7 @@ import {
 import type {
   MarketResponse,
   BehaviorResponse,
+  InsightResponse,
   ContentResponse,
   Persona,
   Platform,
@@ -35,24 +40,33 @@ export default function DashboardPage() {
   const [symbol, setSymbol] = useState("EURUSD=X");
   const [marketData, setMarketData] = useState<MarketResponse | null>(null);
   const [behaviorData, setBehaviorData] = useState<BehaviorResponse | null>(null);
+  const [insightData, setInsightData] = useState<InsightResponse | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[] | null>(null);
-  const [contentData, setContentData] = useState<Record<Persona, ContentResponse> | null>(null);
+  const [allContentData, setAllContentData] = useState<Record<Platform, Record<Persona, ContentResponse>> | null>(null);
   const [platform, setPlatform] = useState<Platform>("linkedin");
   const [customTrades, setCustomTrades] = useState<TradeData[] | null>(null);
+  const { addSuggestions } = useChat();
 
-  const handleSimulate = async () => {
+  // Get current content data based on selected platform
+  const contentData = allContentData && platform ? allContentData[platform] : null;
+
+  const handleSimulate = async (mode: "drop" | "rise" = "drop") => {
     setIsLoading(true);
+    const simulateDrop = mode === "drop";
+    const simulateRise = mode === "rise";
     try {
+      // Step 1 + 2: Get market data, behavior analysis, and chart in parallel
       const [market, behavior, chart] = await Promise.all([
-        getMarketData(true, symbol),
+        getMarketData(symbol, simulateDrop, simulateRise),
         getBehaviorAnalysis(customTrades || undefined),
-        getChartData(true, symbol),
+        getChartData(symbol, simulateDrop, simulateRise),
       ]);
 
       setMarketData(market);
       setBehaviorData(behavior);
       setChartData(chart.data);
 
+      // Construct contexts for Step 3
       const marketContext = `${market.market_data.symbol} ${
         market.market_data.change_pct < 0 ? "dropped" : "rose"
       } ${Math.abs(market.market_data.change_pct).toFixed(1)}%. ${
@@ -61,48 +75,51 @@ export default function DashboardPage() {
       const behaviorContext =
         behavior.patterns.length > 0 ? behavior.summary : undefined;
 
-      const content = await generateAllContent(
-        marketContext,
-        platform,
-        behaviorContext
+      // Step 3: Get coaching insight (fuses X + Y)
+      const insight = await getCoachingInsight(marketContext, behaviorContext);
+      setInsightData(insight);
+
+      // Steps 4+5: Generate content for both platforms in parallel
+      const platforms: Platform[] = ["linkedin", "x"];
+
+      // Generate content for each platform
+      const allPlatformContent = await Promise.all(
+        platforms.map((pl) =>
+          generateAllContent(
+            marketContext,
+            pl,
+            behaviorContext,
+            insight.coaching_insight,
+          )
+        )
       );
-      setContentData(content);
+
+      // Store all content organized by platform
+      const contentByPlatform: Record<Platform, Record<Persona, ContentResponse>> = {
+        linkedin: allPlatformContent[0],
+        x: allPlatformContent[1],
+      };
+      setAllContentData(contentByPlatform);
+
+      // Add suggestions to chat based on market and behavior context
+      await addSuggestions(marketContext, behaviorContext);
     } catch (error) {
       console.error("Error fetching data:", error);
+      toast.error("Analysis failed", {
+        description: error instanceof Error ? error.message : "Could not reach the server. Please try again.",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handlePlatformChange = async (newPlatform: Platform) => {
+  const handlePlatformChange = (newPlatform: Platform) => {
+    // Platform change only affects display - content is pre-generated for both platforms
+    // Auto-switches to the platform-specific content with its tone (Pro for LinkedIn, Punchy for X)
     setPlatform(newPlatform);
-
-    if (marketData) {
-      setIsLoading(true);
-      try {
-        const marketContext = `${marketData.market_data.symbol} ${
-          marketData.market_data.change_pct < 0 ? "dropped" : "rose"
-        } ${Math.abs(marketData.market_data.change_pct).toFixed(1)}%. ${
-          marketData.explanation
-        }`;
-        const behaviorContext =
-          behaviorData && behaviorData.patterns.length > 0
-            ? behaviorData.summary
-            : undefined;
-
-        const content = await generateAllContent(
-          marketContext,
-          newPlatform,
-          behaviorContext
-        );
-        setContentData(content);
-      } catch (error) {
-        console.error("Error regenerating content:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
   };
+
+
 
   const handleTradesUpload = (trades: TradeData[]) => {
     setCustomTrades(trades);
@@ -125,7 +142,11 @@ export default function DashboardPage() {
             onChange={setSymbol}
             disabled={isLoading}
           />
-          <SimulateButton onClick={handleSimulate} isLoading={isLoading} />
+          <SimulateButton
+            onSimulateDrop={() => handleSimulate("drop")}
+            onSimulateRise={() => handleSimulate("rise")}
+            isLoading={isLoading}
+          />
         </div>
       </div>
 
@@ -175,6 +196,20 @@ export default function DashboardPage() {
         </AnimatePresence>
       </div>
 
+      {/* Step 3: Coaching insight — "Market did X, you tend to Y" */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="insight"
+          variants={fadeInUp}
+          initial="initial"
+          animate="animate"
+          transition={{ duration: 0.3, delay: 0.25 }}
+        >
+          <InsightCard data={insightData} isLoading={isLoading} />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Steps 4+5+6: Content generation with reframing + share */}
       <AnimatePresence mode="wait">
         <motion.div
           key="content"

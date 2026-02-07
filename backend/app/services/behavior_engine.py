@@ -47,7 +47,20 @@ class BehaviorEngine:
         if rapid_reentry:
             patterns.append(rapid_reentry)
 
-        # Calculate overall risk level
+        # Detect positive patterns (healthy habits)
+        consistent_sizing = self._detect_consistent_sizing(sorted_trades)
+        if consistent_sizing:
+            patterns.append(consistent_sizing)
+
+        no_revenge = self._detect_no_revenge_trades(sorted_trades)
+        if no_revenge:
+            patterns.append(no_revenge)
+
+        improving_streak = self._detect_improving_streak(sorted_trades)
+        if improving_streak:
+            patterns.append(improving_streak)
+
+        # Calculate overall risk level (positive patterns don't affect risk)
         risk_level = self._calculate_risk_level(patterns)
 
         # Generate summary and coaching
@@ -176,17 +189,90 @@ class BehaviorEngine:
 
         return None
 
+    def _detect_consistent_sizing(self, trades: list[Trade]) -> Optional[BehaviorPattern]:
+        """Detect last 5 trades within 25% of average size — disciplined sizing."""
+        if len(trades) < 5:
+            return None
+
+        recent = trades[-5:]
+        sizes = [t.size for t in recent]
+        avg_size = sum(sizes) / len(sizes)
+
+        if avg_size == 0:
+            return None
+
+        all_within = all(abs(s - avg_size) / avg_size <= 0.25 for s in sizes)
+        if all_within:
+            return BehaviorPattern(
+                pattern_type=PatternType.CONSISTENT_SIZING,
+                description="Your last 5 trades show consistent position sizing — great discipline!",
+                severity=RiskLevel.LOW,
+                details={"avg_size": round(avg_size, 2), "trade_count": 5},
+                is_positive=True,
+            )
+        return None
+
+    def _detect_no_revenge_trades(self, trades: list[Trade]) -> Optional[BehaviorPattern]:
+        """Had losses but didn't revenge trade — emotional control."""
+        if len(trades) < 3:
+            return None
+
+        had_loss = False
+        for i in range(len(trades) - 1):
+            t = trades[i]
+            if t.pnl is not None and t.pnl < 0:
+                had_loss = True
+
+        if not had_loss:
+            return None
+
+        # Check that no revenge trade was detected (this runs after revenge detection)
+        revenge = self._detect_revenge_trade(trades)
+        if revenge is None:
+            return BehaviorPattern(
+                pattern_type=PatternType.NO_REVENGE_TRADES,
+                description="You experienced losses but didn't revenge trade — strong emotional control!",
+                severity=RiskLevel.LOW,
+                details={"losses_handled_well": True},
+                is_positive=True,
+            )
+        return None
+
+    def _detect_improving_streak(self, trades: list[Trade]) -> Optional[BehaviorPattern]:
+        """Last 3+ trades profitable — improving streak."""
+        if len(trades) < 3:
+            return None
+
+        recent = trades[-3:]
+        all_profitable = all(t.pnl is not None and t.pnl > 0 for t in recent)
+        if all_profitable:
+            streak_len = 0
+            for t in reversed(trades):
+                if t.pnl is not None and t.pnl > 0:
+                    streak_len += 1
+                else:
+                    break
+            return BehaviorPattern(
+                pattern_type=PatternType.IMPROVING_STREAK,
+                description=f"You're on a {streak_len}-trade winning streak — keep up the momentum!",
+                severity=RiskLevel.LOW,
+                details={"streak_length": streak_len},
+                is_positive=True,
+            )
+        return None
+
     def _calculate_risk_level(self, patterns: list[BehaviorPattern]) -> RiskLevel:
-        """Calculate overall risk level based on detected patterns."""
-        if not patterns:
+        """Calculate overall risk level based on detected patterns. Positive patterns don't affect risk."""
+        negative_patterns = [p for p in patterns if not p.is_positive]
+        if not negative_patterns:
             return RiskLevel.LOW
 
         # If any pattern is HIGH, overall is HIGH
-        if any(p.severity == RiskLevel.HIGH for p in patterns):
+        if any(p.severity == RiskLevel.HIGH for p in negative_patterns):
             return RiskLevel.HIGH
 
         # If multiple MEDIUM patterns, escalate to HIGH
-        medium_count = sum(1 for p in patterns if p.severity == RiskLevel.MEDIUM)
+        medium_count = sum(1 for p in negative_patterns if p.severity == RiskLevel.MEDIUM)
         if medium_count >= 2:
             return RiskLevel.HIGH
 
@@ -201,29 +287,55 @@ class BehaviorEngine:
         if not patterns:
             return "No concerning patterns detected in your recent trading."
 
-        pattern_names = [p.pattern_type.value.replace("_", " ") for p in patterns]
-        return f"Detected patterns: {', '.join(pattern_names)}"
+        negative = [p for p in patterns if not p.is_positive]
+        positive = [p for p in patterns if p.is_positive]
+
+        parts = []
+        if negative:
+            pattern_names = [p.pattern_type.value.replace("_", " ") for p in negative]
+            parts.append(f"Detected patterns: {', '.join(pattern_names)}")
+        if positive:
+            habit_names = [p.pattern_type.value.replace("_", " ") for p in positive]
+            parts.append(f"Healthy habits: {', '.join(habit_names)}")
+
+        return ". ".join(parts)
 
     def _generate_coaching_message(self, patterns: list[BehaviorPattern], risk_level: RiskLevel) -> str:
         """Generate a supportive coaching message based on patterns."""
         if not patterns:
             return "Your trading patterns look balanced. Keep up the mindful approach."
 
-        messages = {
+        negative_messages = {
             PatternType.LOSS_STREAK: "After consecutive losses, taking a short break can help reset your mindset.",
             PatternType.REVENGE_TRADE: "Quick re-entries after losses often lead to emotional decisions. Consider stepping away briefly.",
             PatternType.OVERSIZING: "Increasing position size during volatility increases risk. Stick to your normal sizing.",
-            PatternType.RAPID_REENTRY: "Fast-paced trading can cloud judgment. Slow down and review each setup carefully."
+            PatternType.RAPID_REENTRY: "Fast-paced trading can cloud judgment. Slow down and review each setup carefully.",
         }
 
-        coaching_parts = [messages.get(p.pattern_type, "") for p in patterns if p.pattern_type in messages]
+        positive_messages = {
+            PatternType.CONSISTENT_SIZING: "Your position sizing has been remarkably consistent — that's the mark of a disciplined trader.",
+            PatternType.NO_REVENGE_TRADES: "You handled losses without revenge trading — that takes real emotional strength.",
+            PatternType.IMPROVING_STREAK: "You're on a winning streak! Stay focused and don't let overconfidence creep in.",
+        }
+
+        coaching_parts = []
+        negative_patterns = [p for p in patterns if not p.is_positive]
+        positive_patterns = [p for p in patterns if p.is_positive]
 
         if risk_level == RiskLevel.HIGH:
-            prefix = "⚠️ Multiple risk signals detected. "
-        else:
-            prefix = ""
+            coaching_parts.append("⚠️ Multiple risk signals detected.")
 
-        return prefix + " ".join(coaching_parts[:2])  # Limit to 2 messages
+        for p in negative_patterns[:2]:
+            msg = negative_messages.get(p.pattern_type)
+            if msg:
+                coaching_parts.append(msg)
+
+        for p in positive_patterns[:2]:
+            msg = positive_messages.get(p.pattern_type)
+            if msg:
+                coaching_parts.append(msg)
+
+        return " ".join(coaching_parts)
 
 
 
