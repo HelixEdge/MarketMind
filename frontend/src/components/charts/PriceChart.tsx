@@ -52,7 +52,7 @@ export function PriceChart({ data, symbol, isLoading }: PriceChartProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex h-[250px] items-center justify-center text-gray-500">
+          <div className="flex h-[250px] items-center justify-center text-[var(--foreground)]">
             Click &quot;Simulate 3% Drop&quot; to see price action
           </div>
         </CardContent>
@@ -99,10 +99,11 @@ export function PriceChart({ data, symbol, isLoading }: PriceChartProps) {
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: "white",
-                border: "1px solid #e5e7eb",
+                backgroundColor: "var(--background)",
+                border: "1px solid rgba(0,0,0,0.08)",
                 borderRadius: "8px",
                 fontSize: "12px",
+                color: "var(--foreground)"
               }}
               formatter={(value) => [Number(value).toFixed(5), "Price"]}
             />

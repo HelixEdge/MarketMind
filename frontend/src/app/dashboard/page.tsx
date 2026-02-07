@@ -8,6 +8,9 @@ import { ContentCard } from "@/components/cards/ContentCard";
 import { PriceChart } from "@/components/charts/PriceChart";
 import { SimulateButton } from "@/components/features/SimulateButton";
 import { SymbolSelector } from "@/components/features/SymbolSelector";
+import { ChatBot } from "@/components/features/ChatBot";
+import { Modal } from "@/components/ui/Modal";
+import { MessageSquare } from "lucide-react";
 import {
   getMarketData,
   getBehaviorAnalysis,
@@ -37,6 +40,7 @@ export default function DashboardPage() {
   const [behaviorData, setBehaviorData] = useState<BehaviorResponse | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[] | null>(null);
   const [contentData, setContentData] = useState<Record<Persona, ContentResponse> | null>(null);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [platform, setPlatform] = useState<Platform>("linkedin");
   const [customTrades, setCustomTrades] = useState<TradeData[] | null>(null);
 
@@ -191,6 +195,22 @@ export default function DashboardPage() {
           />
         </motion.div>
       </AnimatePresence>
+
+      {/* Chat modal trigger */}
+      <div className="fixed right-6 bottom-6 z-40">
+        <button
+          onClick={() => setShowChatModal(true)}
+          className="h-12 w-12 rounded-full bg-indigo-600 text-white shadow-lg hover:bg-indigo-700 flex items-center justify-center"
+          aria-label="Open chat"
+        >
+          <MessageSquare className="h-5 w-5" />
+        </button>
+      </div>
+
+      {/* Chat modal */}
+      <Modal isOpen={showChatModal} onClose={() => setShowChatModal(false)} title="MarketMind Chat">
+        <ChatBot />
+      </Modal>
     </div>
   );
 }

@@ -115,7 +115,7 @@ export function ContentCard({
           {(Object.keys(personaLabels) as Persona[]).map((persona) => (
             <TabsContent key={persona} value={persona}>
               <div className="mt-4 space-y-3">
-                <div className="rounded-lg bg-gray-50 p-4 min-h-[120px]">
+                <div className="rounded-lg bg-gray-50 text-black p-4 min-h-[120px]">
                   <p className="text-sm whitespace-pre-wrap">
                     {data[persona]?.content || "Content not available"}
                   </p>
@@ -126,7 +126,7 @@ export function ContentCard({
                     {data[persona]?.hashtags.map((tag, i) => (
                       <span
                         key={i}
-                        className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded"
+                        className="text-xs text-blue-600 bg-blue-50 text-black px-2 py-1 rounded"
                       >
                         {tag}
                       </span>

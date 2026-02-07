@@ -1,8 +1,10 @@
 from typing import Optional
 from openai import OpenAI
+import json
 
 from app.config import Settings
 from app.models.schemas import MarketData, BehaviorResponse, ChatMessage, ChatRequest, ChatResponse, MarketWithNewsResponse
+from app.services.market_intelligence import MarketIntelligenceService
 
 
 class AIEngine:
@@ -91,9 +93,22 @@ Guidelines:
         return "I can't reach the AI service right now. Quick tip: stay disciplined and review your trading plan before acting."
 
     def chat(self, messages: list[ChatMessage], model: Optional[str] = None, max_tokens: int = 150) -> ChatResponse:
-        """Chat interface: accepts a list of messages (history + current prompt) and returns assistant response."""
+        """Chat interface with basic tool support.
+
+        The assistant can request the `get_market_with_news` tool by returning a message that
+        starts with the header `CALL_TOOL:get_market_with_news` followed by an optional JSON
+        payload on the next line. Example assistant message:
+
+        CALL_TOOL:get_market_with_news
+        {"symbol": "BTC/USD", "news_limit": 3, "simulate_drop": false}
+
+        When such a request is detected, the engine will invoke the MarketIntelligenceService,
+        append a `tool` message with the result, and re-query the model so it can incorporate
+        the tool output into its final reply. We allow one tool-call cycle per chat invocation.
+        """
         api_messages = [{"role": m.role, "content": m.content} for m in messages]
 
+        # If the client is not configured, return a simple fallback (no tool support).
         if not self.client:
             last_user = None
             for m in reversed(messages):
@@ -103,19 +118,199 @@ Guidelines:
             content = self._get_fallback_chat_response(last_user.content if last_user else "")
             return ChatResponse(message=ChatMessage(role="assistant", content=content))
 
-        try:
-            response = self.client.chat.completions.create(
-                model=model or self.model,
-                max_tokens=max_tokens,
-                messages=api_messages
-            )
-            content = response.choices[0].message.content
-            usage = getattr(response, "usage", None)
-            return ChatResponse(message=ChatMessage(role="assistant", content=content), usage=usage)
-        except Exception:
-            last_user_content = messages[-1].content if messages else ""
-            content = self._get_fallback_chat_response(last_user_content)
-            return ChatResponse(message=ChatMessage(role="assistant", content=content))
+        # Support at most one tool call cycle to avoid long loops
+        tool_cycle = 0
+        max_tool_cycles = 1
+
+        last_response_content = ""
+        last_usage = None
+
+        while True:
+            try:
+                # Provide a formal function/tool description to the model so it can call it via the
+                # function-calling / tools interface if supported. We keep our legacy header-based
+                # "CALL_TOOL:get_market_with_news" parsing as a fallback for models that don't use
+                # function_call objects.
+                tools = [
+                    {
+                        "type": "function",
+                        "name": "get_market_with_news",
+                        "description": "Return latest market data and recent news for a symbol.",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "symbol": {
+                                    "type": "string",
+                                    "description": "Symbol or ticker, e.g. BTC/USD or AAPL",
+                                },
+                                "news_limit": {
+                                    "type": "integer",
+                                    "description": "Number of news items to return",
+                                },
+                                "simulate_drop": {
+                                    "type": "boolean",
+                                    "description": "If true, simulate a market drop in the returned data",
+                                },
+                            },
+                            "required": [],
+                            "additionalProperties": False,
+                        },
+                        "strict": True,
+                    }
+                ]
+
+                response = self.client.chat.completions.create(
+                    model=model or self.model,
+                    max_tokens=max_tokens,
+                    messages=api_messages,
+                    tools=tools,
+                    tools_choice=None
+                )
+            except Exception:
+                last_user_content = messages[-1].content if messages else ""
+                content = self._get_fallback_chat_response(last_user_content)
+                return ChatResponse(message=ChatMessage(role="assistant", content=content))
+
+            # message may include either content or a function_call (or both depending on model)
+            message_obj = response.choices[0].message
+            assistant_text = getattr(message_obj, "content", "") or ""
+            last_usage = getattr(response, "usage", None)
+
+            # New style: function_call object from model
+            function_call = getattr(message_obj, "function_call", None)
+            if not function_call:
+                # Some clients return dict-like objects
+                try:
+                    function_call = message_obj.get("function_call") if hasattr(message_obj, "get") else None
+                except Exception:
+                    function_call = None
+
+            if function_call and tool_cycle < max_tool_cycles:
+                # Extract name and arguments (arguments may be a JSON string)
+                if isinstance(function_call, dict):
+                    func_name = function_call.get("name")
+                    func_args = function_call.get("arguments")
+                else:
+                    func_name = getattr(function_call, "name", None)
+                    func_args = getattr(function_call, "arguments", None)
+
+                try:
+                    payload = json.loads(func_args) if isinstance(func_args, str) and func_args.strip() else {}
+                except Exception:
+                    payload = {}
+
+                if func_name == "get_market_with_news":
+                    symbol = payload.get("symbol") or None
+                    news_limit = int(payload.get("news_limit", 3))
+                    simulate_drop = bool(payload.get("simulate_drop", False))
+
+                    try:
+                        market_service = MarketIntelligenceService(symbol=symbol or None)
+                        tool_result = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=news_limit)
+                        tool_content = json.dumps(tool_result, default=str)
+                    except Exception as e:
+                        tool_content = json.dumps({"error": str(e)})
+
+                    # Append the model's original assistant message (which requested the function)
+                    api_messages.append({"role": "assistant", "content": assistant_text})
+                    # Add a function role message with the function result so the model can consume it
+                    api_messages.append({"role": "function", "name": "get_market_with_news", "content": tool_content})
+
+                    tool_cycle += 1
+                    last_response_content = assistant_text
+                    # Loop again so the model can produce a final response that incorporates the function output
+                    continue
+
+            # Some SDKs/models return a `tool_calls` list on the message object (e.g., multi-tool responses)
+            tool_calls = getattr(message_obj, "tool_calls", None)
+            if not tool_calls:
+                try:
+                    tool_calls = message_obj.get("tool_calls") if hasattr(message_obj, "get") else None
+                except Exception:
+                    tool_calls = None
+
+            if tool_calls and tool_cycle < max_tool_cycles:
+                for tool_call in tool_calls:
+                    # Extract function name and arguments from different possible shapes
+                    func_name = None
+                    func_args = None
+
+                    if isinstance(tool_call, dict):
+                        fn = tool_call.get("function") or {}
+                        func_name = fn.get("name")
+                        func_args = tool_call.get("arguments")
+                    else:
+                        fn = getattr(tool_call, "function", None)
+                        func_name = getattr(fn, "name", None) if fn else None
+                        func_args = getattr(tool_call, "arguments", None)
+
+                    try:
+                        payload = json.loads(func_args) if isinstance(func_args, str) and func_args.strip() else {}
+                    except Exception:
+                        payload = {}
+
+                    if func_name == "get_market_with_news":
+                        symbol = payload.get("symbol") or None
+                        news_limit = int(payload.get("news_limit", 3))
+                        simulate_drop = bool(payload.get("simulate_drop", False))
+
+                        try:
+                            market_service = MarketIntelligenceService(symbol=symbol or None)
+                            tool_result = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=news_limit)
+                            tool_content = json.dumps(tool_result, default=str)
+                        except Exception as e:
+                            tool_content = json.dumps({"error": str(e)})
+
+                        # Append the model's original assistant message and a function message with the result
+                        api_messages.append({"role": "assistant", "content": assistant_text})
+                        api_messages.append({"role": "function", "name": "get_market_with_news", "content": tool_content})
+
+                        tool_cycle += 1
+                        last_response_content = assistant_text
+                        # Only process one tool call per cycle
+                        break
+
+                # Continue so the model can consume the function output and produce final reply
+                continue
+
+            # Legacy fallback: assistant returned a header-based tool request in plain text
+            header = "CALL_TOOL:get_market_with_news"
+            if assistant_text.strip().startswith(header) and tool_cycle < max_tool_cycles:
+                # Parse optional JSON payload following the header
+                payload = {}
+                parts = assistant_text.split("\n", 1)
+                if len(parts) > 1 and parts[1].strip():
+                    try:
+                        payload = json.loads(parts[1].strip())
+                    except Exception:
+                        # ignore parse errors and use defaults
+                        payload = {}
+
+                symbol = payload.get("symbol") or None
+                news_limit = int(payload.get("news_limit", 3))
+                simulate_drop = bool(payload.get("simulate_drop", False))
+
+                # Invoke tool
+                try:
+                    market_service = MarketIntelligenceService(symbol=symbol or None)
+                    tool_result = market_service.get_market_with_news(simulate_drop=simulate_drop, news_limit=news_limit)
+                    # Convert result to json string
+                    tool_content = json.dumps(tool_result, default=str)
+                except Exception as e:
+                    tool_content = json.dumps({"error": str(e)})
+
+                # Append assistant's tool request message and the tool response message
+                api_messages.append({"role": "assistant", "content": assistant_text})
+                api_messages.append({"role": "tool", "content": f"RESULT:get_market_with_news\n{tool_content}"})
+
+                tool_cycle += 1
+                last_response_content = assistant_text
+                # Continue loop so model can consume tool output and produce final reply
+                continue
+
+            # No tool requested — return assistant reply
+            last_response_content = assistant_text
+            return ChatResponse(message=ChatMessage(role="assistant", content=last_response_content), usage=last_usage)
 
 
 claude_engine = AIEngine()
