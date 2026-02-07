@@ -57,11 +57,23 @@ class MarketData(BaseModel):
     spike_direction: Optional[str] = None  # "up" or "down"
     timestamp: datetime
 
-
 class MarketResponse(BaseModel):
     market_data: MarketData
     explanation: str
     coaching_message: Optional[str] = None
+
+
+class NewsItem(BaseModel):
+    title: str
+    link: Optional[str] = None
+    publisher: Optional[str] = None
+    time: Optional[str] = None
+    summary: Optional[str] = None
+
+
+class MarketWithNewsResponse(BaseModel):
+    market: MarketData
+    news: list[NewsItem]
 
 
 class BehaviorPattern(BaseModel):
@@ -95,3 +107,24 @@ class ContentResponse(BaseModel):
     content: str
     hashtags: list[str]
     char_count: int
+
+
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant" | "system"
+    content: str
+    timestamp: Optional[datetime] = None
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    model: Optional[str] = None
+    max_tokens: Optional[int] = 1000
+    # Use a named prompt file from backend/app/prompts/{key}.md
+    system_prompt_key: Optional[str] = None
+    # Or pass raw system prompt text to use for this chat
+    system_prompt_override: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    message: ChatMessage
+    usage: Optional[dict] = None

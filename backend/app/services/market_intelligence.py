@@ -3,8 +3,9 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from typing import Optional
-
-from app.models.schemas import MarketData, MarketIndicators
+from newsapi import NewsApiClient
+from app.models.schemas import MarketData, MarketIndicators, MarketWithNewsResponse
+from app.config import Settings
 
 
 class MarketIntelligenceService:
@@ -154,6 +155,86 @@ class MarketIntelligenceService:
             timestamp=datetime.now()
         )
 
+    def get_market_with_news(self, simulate_drop: bool = False, news_limit: int = 3) -> MarketWithNewsResponse:
+        """Return a MarketWithNewsResponse combining current market data and recent news headlines.
+
+        - `simulate_drop`: whether to apply the 3% demo drop to the most recent candle
+        - `news_limit`: maximum number of news items to return
+        """
+        # Fetch market model (already includes indicators)
+        market_model = self.get_market_data(simulate_drop=simulate_drop)
+
+        # Fetch news: prefer NewsAPI (if key present), otherwise fall back to yfinance
+        news_items = []
+
+        # Try NewsAPI first when configured
+        try:
+            settings = Settings()
+            if settings.NEWSAPI_KEY:
+                try:
+                    client = NewsApiClient(api_key=settings.NEWSAPI_KEY)
+                    # Use a simple query based on symbol (strip =X and replace slashes)
+                    q = self.symbol.replace("=X", "").replace("/", " ")
+                    resp = client.get_everything(q=q, language="en", page_size=news_limit, sort_by="publishedAt")
+                    articles = resp.get("articles", []) if isinstance(resp, dict) else []
+
+                    for art in articles:
+                        news_items.append({
+                            "title": art.get("title", ""),
+                            "link": art.get("url", ""),
+                            "publisher": (art.get("source") or {}).get("name", "") if isinstance(art.get("source"), dict) else art.get("source", ""),
+                            "time": art.get("publishedAt"),
+                            "summary": art.get("description") or art.get("content") or "",
+                        })
+                except Exception:
+                    # If NewsAPI fails, fall back to yfinance below
+                    news_items = []
+        except Exception:
+            pass
+
+        # Fall back to yfinance news when NewsAPI not available or returned nothing
+        if not news_items:
+            try:
+                ticker = yf.Ticker(self.symbol)
+                raw_news = getattr(ticker, "news", None)
+                if raw_news:
+                    for item in raw_news[:news_limit]:
+                        # yfinance news items vary by provider; be defensive
+                        provider_time = item.get("providerPublishTime") or item.get("time") or None
+                        published_at = None
+                        try:
+                            if provider_time:
+                                # provider_time is usually epoch seconds
+                                published_at = datetime.fromtimestamp(int(provider_time)).isoformat()
+                        except Exception:
+                            published_at = None
+
+                        news_items.append({
+                            "title": item.get("title") or item.get("headline") or "",
+                            "link": item.get("link") or item.get("url") or "",
+                            "publisher": item.get("publisher") or item.get("source") or "",
+                            "time": published_at,
+                            "summary": item.get("summary") or item.get("snippet") or "",
+                        })
+            except Exception:
+                # On any failure, return empty list for news
+                news_items = []
+
+        # Convert market model to primitive dict (pydantic v2 model_dump fallback to dict)
+        try:
+            market_dict = market_model.model_dump()
+        except Exception:
+            try:
+                market_dict = market_model.dict()
+            except Exception:
+                market_dict = {
+                    "symbol": market_model.symbol,
+                    "current_price": market_model.current_price,
+                    "change_pct": market_model.change_pct,
+                }
+
+        return MarketWithNewsResponse(market=market_dict, news=news_items)
+    
     def _simulate_drop(self, df: pd.DataFrame) -> pd.DataFrame:
         """Simulate a 3% market drop for demo purposes."""
         df = df.copy()
@@ -170,5 +251,3 @@ class MarketIntelligenceService:
 
         return df
 
-
-market_service = MarketIntelligenceService()

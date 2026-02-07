@@ -120,3 +120,31 @@ export async function generateAllContent(
     trading_coach: results[2],
   };
 }
+
+export interface ChatMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp?: string;
+}
+
+export interface ChatResponsePayload {
+  message: ChatMessage;
+  usage?: Record<string, any>;
+}
+
+export async function chat(
+  messages: ChatMessage[],
+  model?: string,
+  max_tokens?: number,
+  system_prompt_key?: string,
+  system_prompt_override?: string
+): Promise<ChatResponsePayload> {
+  const request: any = { messages, model, max_tokens };
+  if (system_prompt_key) request.system_prompt_key = system_prompt_key;
+  if (system_prompt_override) request.system_prompt_override = system_prompt_override;
+
+  return fetchApi<ChatResponsePayload>(`/chat`, {
+    method: "POST",
+    body: JSON.stringify(request),
+  });
+}
