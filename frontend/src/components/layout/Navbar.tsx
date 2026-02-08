@@ -25,7 +25,7 @@ export function Navbar({ onMenuToggle }: NavbarProps) {
           <Menu className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </Button>
         <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-          Intelligent Trading Analyst
+          MarketMind
         </h2>
       </div>
 

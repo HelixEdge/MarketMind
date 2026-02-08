@@ -1,27 +1,26 @@
-# Intelligent Trading Analyst | 智能交易分析师
+# MarketMind | Intelligent Trading Analyst
 
-AI-powered trading dashboard with market intelligence, behavior detection, and social content generation.
+AI-powered trading dashboard that helps retail traders understand market moves, analyse their own behaviour, and create trusted social content.
 
-AI驱动的交易仪表板，集成市场分析、行为检测和社交内容生成。
-
----
-
-## Features | 功能特性
-
-| Feature | 功能 | Description | 描述 |
-|---------|------|-------------|------|
-| Market Intelligence | 市场分析 | Real-time RSI, ATR, volume + AI explanations | 实时RSI、ATR、成交量 + AI解读 |
-| Behavior Engine | 行为引擎 | Detects loss streaks, revenge trading, oversizing | 检测连续亏损、报复性交易、超额持仓 |
-| Content Generator | 内容生成 | 3 persona voices for LinkedIn/Twitter | 3种人设风格，适配LinkedIn/Twitter |
-| Price Chart | 价格图表 | Interactive chart with drop simulation | 交互式图表，支持模拟下跌 |
-| Dark Mode | 深色模式 | Toggle light/dark theme | 切换明/暗主题 |
-| CSV Upload | CSV上传 | Upload custom trade history | 上传自定义交易记录 |
+> [English](README.md) | [中文](README.zh-CN.md)
 
 ---
 
-## Quick Start | 快速开始
+## Features
 
-### 1. Backend | 后端
+- **Market Intelligence** — Real-time technical indicators (RSI, ATR, Volume Ratio) with AI-generated explanations and coaching messages
+- **Behaviour Coaching** — Detects 7 patterns (loss streaks, revenge trading, oversizing, rapid re-entry, consistent sizing, no revenge trades, improving streaks) with risk scoring and CSV upload
+- **AI Chat Coach** — Multi-turn conversation with tool use for live market data, persistent chat history
+- **Social Content Generator** — 3 persona voices (Calm Analyst, Data Nerd, Trading Coach) for LinkedIn and X, with one-click share and copy
+- **Auth & Sessions** — JWT + bcrypt authentication with demo account, protected routes, and history persistence
+- **Dark / Light / System Theme** — Class-based theme toggle persisted to localStorage
+- **Interactive Price Chart** — Recharts-powered chart with simulate 3% drop and 8% rise
+
+---
+
+## Quick Start
+
+### 1. Backend
 
 ```bash
 cd backend
@@ -36,184 +35,288 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-**Configure API Keys | 配置API密钥:**
+Create a `.env` file in the `backend/` directory:
 
-1) OpenAI (used for content and market explanations)
-```bash
-# Sign up / log in at: https://platform.openai.com/
-# Create an API key and add it to your .env file
-OPENAI_API_KEY=your-openai-api-key-here
+```env
+OPENAI_API_KEY=your-openai-api-key      # Required
+NEWSAPI_KEY=your-newsapi-key             # Optional (falls back to yfinance news)
+MODEL_BASE_URL=                          # Optional (custom OpenAI-compatible endpoint)
 ```
 
-2) NewsAPI (optional — used to fetch recent news headlines)
-```bash
-# Sign up at: https://newsapi.org/
-# Create an API key and add it to your .env file
-NEWSAPI_KEY=your-newsapi-key-here
-```
+Start the server:
 
-Notes:
-- The NewsAPI key is optional; if not provided the app will fall back to yfinance's news (when available).
-- Do NOT commit your `.env` file to git. The repository already includes `.gitignore` entries to exclude env files.（不要把 `.env` 提交到仓库）
-
-**Start Server | 启动服务:**
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-### 2. Frontend | 前端
+### 2. Frontend
 
 ```bash
 cd frontend
 npm install
+```
+
+Optionally create `.env.local` in the `frontend/` directory:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Start the dev server:
+
+```bash
 npm run dev
 ```
 
-### 3. Open Browser | 打开浏览器
+### 3. Open
 
 ```
 http://localhost:3000
 ```
 
----
+### 4. Demo Account
 
-## Usage | 使用方法
-
-### Demo Flow | 演示流程
-
-1. **Select Symbol | 选择交易对**
-   - EUR/USD, GBP/USD, BTC/USD, ETH/USD
-
-2. **Click "Simulate 3% Drop" | 点击"模拟3%下跌"**
-   - Triggers market analysis | 触发市场分析
-   - Analyzes behavior patterns | 分析行为模式
-   - Generates social posts | 生成社交帖子
-
-3. **View Results | 查看结果**
-   - Price chart shows the drop | 价格图表显示下跌
-   - Market card explains why | 市场卡片解释原因
-   - Behavior card shows patterns | 行为卡片显示模式
-   - Content card has 3 personas | 内容卡片有3种人设
-
-4. **Copy & Share | 复制分享**
-   - Switch LinkedIn/Twitter | 切换LinkedIn/Twitter
-   - Click "Copy" button | 点击"复制"按钮
-
-### Upload Custom Trades | 上传自定义交易
-
-CSV format | CSV格式:
-```csv
-id,symbol,side,size,entry_price,exit_price,pnl,timestamp,closed_at
-t001,BTCUSDT,buy,0.5,42150.00,42580.00,215.00,2024-02-01T09:15:00,2024-02-01T09:45:00
 ```
-
-Required fields | 必填字段: `id, symbol, side, size, entry_price, timestamp`
-
----
-
-## API Endpoints | API接口
-
-| Endpoint | Method | Description | 描述 |
-|----------|--------|-------------|------|
-| `/api/v1/market` | GET | Market data + AI explanation | 市场数据 + AI解读 |
-| `/api/v1/market/chart` | GET | Price chart data | 价格图表数据 |
-| `/api/v1/market/with-news` | GET | Market data + recent news headlines | 市场数据 + 最新新闻头条 |
-| `/api/v1/behavior` | POST | Trade pattern analysis | 交易模式分析 |
-| `/api/v1/content` | POST | Generate persona posts | 生成人设帖子 |
-| `/api/v1/chat` | POST | Conversational chat: send message history and current prompt, receive assistant reply | 与AI对话；发送消息历史和当前提示，返回助手回复 |
-
-### Parameters | 参数
-
-**GET /market:**
-- `symbol` - Trading pair | 交易对 (default: EURUSD=X)
-- `simulate_drop` - Simulate 3% drop | 模拟下跌 (true/false)
-
-**POST /content:**
-```json
-{
-  "market_context": "BTC dropped 3%...",
-  "persona": "calm_analyst | data_nerd | trading_coach",
-  "platform": "linkedin | twitter"
-}
+Email:    demo@trader.com
+Password: demo1234
 ```
 
 ---
 
-## Tech Stack | 技术栈
+## Demo Flow
 
-| Layer | 层级 | Technology | 技术 |
-|-------|------|------------|------|
-| Backend | 后端 | FastAPI, yfinance, OpenAI | FastAPI, yfinance, OpenAI |
-| Frontend | 前端 | Next.js, TypeScript, Tailwind | Next.js, TypeScript, Tailwind |
-| Charts | 图表 | Recharts | Recharts |
-| Animation | 动画 | Framer Motion | Framer Motion |
+1. Land on the intro page and click **Get Started**
+2. Log in with the demo account
+3. Explore the **Vision** page (product intro)
+4. Navigate to the **Dashboard**, select a symbol, and click **Simulate 3% Drop** or **Simulate 8% Rise**
+5. Cards animate in: Market explanation → Behaviour insight → Coaching fusion → Social content (LinkedIn + X per persona)
+6. Open the **floating chat bubble** to ask follow-up questions, or visit the full **Chat** page
+7. Check the **History** page for past chats and generated content
 
 ---
 
-## System Architecture | 系统架构
+## API Endpoints
+
+All endpoints are prefixed with `/api/v1`.
+
+### Auth
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/auth/register` | Register a new user |
+| POST | `/auth/login` | Log in, returns JWT |
+| GET | `/auth/me` | Get current user (auth required) |
+| POST | `/auth/logout` | Log out |
+
+### Market Intelligence
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/market` | Market data + AI explanation + optional coaching |
+| GET | `/market/chart` | Historical price data for charting |
+| GET | `/market/indicators` | Raw technical indicators (RSI, ATR, Volume Ratio) |
+| GET | `/market/with-news` | Market data + news headlines |
+
+### Behaviour
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/behavior` | Analyse trading behaviour from trade list |
+| GET | `/behavior/sample` | Sample analysis using demo trades |
+
+### Coaching Insight
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/insight` | Fuse market context + behaviour into coaching message |
+
+### Content
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/content` | Generate social content for one persona |
+| POST | `/content/all` | Generate content for all 3 personas |
+| GET | `/content/personas` | List available personas with descriptions |
+
+### Chat
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/chat` | Multi-turn chat with AI (optional auth for persistence) |
+
+### History (auth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/history/chat` | Retrieve chat history |
+| DELETE | `/history/chat` | Clear chat history |
+| GET | `/history/content` | Retrieve generated content history |
+| GET | `/history/trades` | Retrieve saved trades |
+| POST | `/history/trades` | Save trades to user account |
+
+### Health
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| GET | `/` | API info |
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Backend | FastAPI + yfinance + OpenAI-compatible API + aiosqlite |
+| Frontend | Next.js 16 + React 19 + Tailwind CSS v4 + shadcn/ui |
+| Auth | JWT (python-jose) + bcrypt (passlib) |
+| Charts | Recharts 3 |
+| Animation | Framer Motion 12 |
+| Data | trades.csv + SQLite (aiosqlite) |
+| Infra | Vercel / Cloudflare Pages |
+| Dev UX | TypeScript 5, ESLint, hot reload |
+
+---
+
+## Architecture
 
 ```mermaid
-flowchart TD
-subgraph DATA["Data"]
-  P["Live Price (yfinance)"]
-  T["User Trades (CSV)"]
+graph TD
+
+subgraph Data
+  P[Live Price via yfinance]
+  N[Market News via NewsAPI]
+  T[User Trades CSV]
 end
-subgraph BACKEND["Backend"]
-  M["Market Intelligence"]
-  B["Behavior Engine"]
-  C["OpenAI Engine"]
-  S["Content Generator"]
+
+subgraph Auth
+  A[JWT + bcrypt Auth]
+  DB[(SQLite via aiosqlite)]
 end
-subgraph UI["UI"]
-  D["Next.js Dashboard"]
+
+subgraph Backend
+  M[Market Intel]
+  B[Behaviour Engine]
+  AI[AI Coaching Engine]
+  S[Social Content Engine]
+  CH[Chat Coach]
 end
+
+subgraph UI
+  D[Next.js Dashboard]
+  CB[Chat Bubble]
+end
+
 P --> M
+N --> M
 T --> B
-M --> C
-B --> C
-C --> S
-M --> D
-B --> D
+M --> AI
+B --> AI
+AI --> S
+AI --> CH
 S --> D
+AI --> D
+CH --> CB
+CB --> D
+A --> DB
+DB --> CH
+DB --> S
 ```
 
 ---
 
-## Project Structure | 项目结构
+## Project Structure
 
 ```
 deriv-ai-talent-sprint/
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # FastAPI entry | 入口
-│   │   ├── api/v1/              # API endpoints | 接口
-│   │   ├── services/            # Business logic | 业务逻辑
-│   │   └── data/trades.csv      # Sample data | 示例数据
+│   │   ├── main.py                 # FastAPI entry point
+│   │   ├── config.py               # Environment settings
+│   │   ├── auth.py                 # JWT + bcrypt helpers
+│   │   ├── database.py             # SQLite via aiosqlite
+│   │   ├── api/v1/                 # Route handlers
+│   │   │   ├── auth.py
+│   │   │   ├── market.py
+│   │   │   ├── behavior.py
+│   │   │   ├── insight.py
+│   │   │   ├── content.py
+│   │   │   ├── chat.py
+│   │   │   └── history.py
+│   │   ├── services/               # Business logic
+│   │   │   ├── market_intelligence.py
+│   │   │   ├── behavior_engine.py
+│   │   │   ├── claude_engine.py
+│   │   │   └── content_generator.py
+│   │   ├── models/                 # Pydantic schemas
+│   │   ├── prompts/                # System prompt files
+│   │   └── data/trades.csv         # Sample trade data
 │   └── requirements.txt
 │
 ├── frontend/
 │   ├── src/
-│   │   ├── app/dashboard/       # Dashboard page | 仪表板页面
-│   │   ├── components/          # UI components | UI组件
-│   │   └── lib/api.ts           # API client | API客户端
+│   │   ├── app/
+│   │   │   ├── layout.tsx          # Root layout (providers, fonts)
+│   │   │   ├── page.tsx            # Landing page
+│   │   │   ├── login/page.tsx      # Login page
+│   │   │   └── dashboard/
+│   │   │       ├── layout.tsx      # Dashboard shell (sidebar, navbar)
+│   │   │       ├── page.tsx        # Dashboard home
+│   │   │       ├── chat/page.tsx   # Full-page chat
+│   │   │       ├── history/page.tsx
+│   │   │       ├── settings/page.tsx
+│   │   │       └── vision/page.tsx
+│   │   ├── components/
+│   │   │   ├── auth/               # ProtectedRoute
+│   │   │   ├── cards/              # MarketCard, BehaviorCard, InsightCard, ContentCard
+│   │   │   ├── charts/             # PriceChart (Recharts)
+│   │   │   ├── chat/               # ChatBubble, ChatInput, ChatMessageList
+│   │   │   ├── features/           # SimulateButton, SymbolSelector, TradeUpload
+│   │   │   ├── layout/             # Navbar, Sidebar
+│   │   │   ├── providers/          # AuthProvider, ChatProvider, ThemeProvider
+│   │   │   └── ui/                 # shadcn/ui primitives
+│   │   ├── hooks/                  # useSessionState
+│   │   ├── lib/                    # api.ts, utils.ts
+│   │   └── types/                  # Shared TypeScript types
 │   └── package.json
 │
+├── CLAUDE.md
 └── README.md
 ```
 
 ---
 
-## Troubleshooting | 故障排除
+## Environment Variables
 
-| Issue | 问题 | Solution | 解决方案 |
-|-------|------|----------|----------|
-| CORS error | 跨域错误 | Ensure backend runs on port 8000 | 确保后端运行在8000端口 |
-| No market data | 无市场数据 | Check internet connection | 检查网络连接 |
-| API error | API错误 | Verify OPENAI_API_KEY in .env | 检查.env中的API密钥 |
-| Build error | 构建错误 | Run `npm install` again | 重新运行 `npm install` |
+All backend env vars are set in `backend/.env`.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `OPENAI_API_KEY` | Yes | — | API key for OpenAI-compatible LLM |
+| `NEWSAPI_KEY` | No | — | NewsAPI key (falls back to yfinance news) |
+| `MODEL` | No | `gpt-5-mini-2025-08-07` | Model name to use |
+| `MODEL_BASE_URL` | No | — | Custom base URL for OpenAI-compatible API |
+| `CORS_ORIGINS` | No | `["http://localhost:3000", "http://127.0.0.1:3000"]` | Allowed CORS origins (JSON array) |
+| `DEFAULT_SYMBOL` | No | `EURUSD=X` | Default trading symbol |
+| `JWT_SECRET_KEY` | No | `dev-secret-change-in-production` | Secret key for JWT signing |
+| `JWT_ALGORITHM` | No | `HS256` | JWT signing algorithm |
+| `JWT_EXPIRY_HOURS` | No | `24` | JWT token expiry in hours |
 
 ---
 
-## License | 许可证
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| CORS error | Ensure backend runs on port 8000 |
+| No market data | Check internet connection |
+| API error | Verify `OPENAI_API_KEY` in `.env` |
+| Build error | Run `npm install` again |
+| No AI responses | Check `OPENAI_API_KEY` is set and valid |
+| Auth fails | Check `JWT_SECRET_KEY` in `.env` |
+
+---
+
+## License
 
 MIT

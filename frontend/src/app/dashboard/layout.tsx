@@ -13,12 +13,18 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <ProtectedRoute>
       <ChatProvider>
         <div className="flex h-dvh bg-white dark:bg-gray-950">
-          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar
+            open={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+            collapsed={collapsed}
+            onToggleCollapse={() => setCollapsed((c) => !c)}
+          />
           <div className="flex flex-1 flex-col overflow-hidden">
             <Navbar onMenuToggle={() => setSidebarOpen(true)} />
             <main className="flex-1 overflow-auto bg-gray-100 p-4 sm:p-6 dark:bg-gray-950">

@@ -13,7 +13,7 @@ export default function Home() {
           </div>
 
           <h1 className="mb-4 text-5xl font-bold tracking-tight text-white">
-            Intelligent Trading Analyst
+            MarketMind
           </h1>
           <p className="mb-8 text-xl text-gray-300">
             Bloomberg terminal + trading coach + ghostwriter — one AI analyst in

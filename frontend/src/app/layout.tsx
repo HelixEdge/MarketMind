@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Intelligent Trading Analyst",
+  title: "MarketMind",
   description: "AI-powered market intelligence, behavior detection, and social content generation",
 };
 
