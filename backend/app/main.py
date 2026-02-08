@@ -9,15 +9,15 @@ from app.database import init_db, close_db
 settings = Settings()
 
 app = FastAPI(
-    title="Intelligent Trading Analyst",
+    title="MarketMind",
     description="AI-powered market intelligence, behavior detection, and social content generation",
     version="1.0.0"
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -27,7 +27,7 @@ async def startup_event():
     """Initialize database and log API configuration on startup."""
     await init_db()
     print("\n" + "="*60)
-    print("🚀 Intelligent Trading Analyst API Startup")
+    print("🚀 MarketMind API Startup")
     print("="*60)
     claude_engine = AIEngine()
     if claude_engine.client:
@@ -55,7 +55,7 @@ async def health_check():
 @app.get("/")
 async def root():
     return {
-        "message": "Intelligent Trading Analyst API",
+        "message": "MarketMind API",
         "docs": "/docs",
         "health": "/health"
     }
