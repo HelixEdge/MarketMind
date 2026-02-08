@@ -312,7 +312,7 @@ export default function SettingsPage() {
                     Application
                   </span>
                   <span className="text-sm font-medium dark:text-white">
-                    Intelligent Trading Analyst
+                    MarketMind
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
